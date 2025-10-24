@@ -7,7 +7,7 @@
 #-------------------------------------------------------------------------------
 # Author: rolling (rolling@a-full.com)
 # Created: 2025-10-23
-# Version: 1.0.0
+# Version: 1.0.1
 #===============================================================================
 #
 # OVERVIEW:
@@ -118,19 +118,31 @@ check_command() {
             git)
                 log_warning "Git is not installed on this Proxmox VE node"
                 echo ""
-                read -rp "Do you want to install git now? (y/N): " response
-                if [[ "$response" =~ ^[Yy]$ ]]; then
-                    log_step "Installing git..."
-                    if apt-get update &> /dev/null && apt-get install -y git &> /dev/null; then
-                        log_success "Git installed successfully"
+
+                # Try to read from terminal even if stdin is piped (curl | bash)
+                # Using /dev/tty allows interactive input even in pipe mode
+                if [ -c /dev/tty ]; then
+                    # Terminal available - ask user interactively
+                    read -rp "Do you want to install git now? (y/N): " response </dev/tty
+                    if [[ "$response" =~ ^[Yy]$ ]]; then
+                        log_step "Installing git..."
+                        if apt-get update &> /dev/null && apt-get install -y git &> /dev/null; then
+                            log_success "Git installed successfully"
+                        else
+                            log_error "Failed to install git"
+                            log_error "Please install git manually: apt-get install git"
+                            exit 1
+                        fi
                     else
-                        log_error "Failed to install git"
-                        log_error "Please install git manually: apt-get install git"
+                        log_error "Git is required to clone the repository"
+                        log_error "Please install it manually: apt-get install git"
                         exit 1
                     fi
                 else
+                    # No terminal available (truly non-interactive, e.g., cron/automation)
                     log_error "Git is required to clone the repository"
                     log_error "Please install it manually: apt-get install git"
+                    log_error "Or run this script with terminal access"
                     exit 1
                 fi
                 ;;

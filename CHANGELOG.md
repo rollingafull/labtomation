@@ -11,6 +11,35 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+---
+
+## [1.0.1] - 2025-10-24
+
+### Fixed
+
+- **SSH Key Generation**: Fixed critical bug where ssh-keygen output was captured in variables
+  - Redirected ssh-keygen output to stderr (`>&2`) to prevent stdout pollution
+  - SSH key path now correctly captured without mixed output
+  - Cloud-init configuration no longer fails due to malformed key paths
+
+- **Interactive Prompts in Pipe Mode**: Fixed all interactive prompts when using `curl | bash`
+  - **install.sh**: Git installation prompt now uses `/dev/tty`
+  - **labtomation.sh**: OS selection menu now uses `/dev/tty`
+  - **labtomation.sh**: VM creation confirmation now uses `/dev/tty`
+  - All user inputs work correctly even when stdin is piped
+  - Maintains full interactive experience with one-command installation
+
+### Changed
+
+- **install.sh**: Improved user experience for one-command installation
+  - Interactive prompts work reliably in both local and piped execution
+  - Clear error messages when terminal is not available
+- **labtomation.sh**: Enhanced interactive mode compatibility
+  - OS selection and VM confirmation work with piped input
+  - Consistent behavior across all execution methods
+
+---
+
 ## [1.0.0] - 2025-10-23 🎉
 
 ### First Stable Release
