@@ -1,0 +1,112 @@
+---
+# ===============================================================================
+# Role: jenkins
+# Description: Installs Jenkins CI/CD server
+# ===============================================================================
+
+- name: Check if Jenkins is already installed
+  ansible.builtin.command: systemctl is-active jenkins # noqa: command-instead-of-module
+  register: jenkins_check
+  changed_when: false
+  failed_when: false
+
+- name: Display Jenkins status if already installed
+  ansible.builtin.debug:
+    msg: "Jenkins is already installed and {{ jenkins_check.stdout }}"
+  when: jenkins_check.rc == 0
+
+- name: Install Java 21 (required for Jenkins)
+  ansible.builtin.package:
+    name: "{{ java_package }}"
+    state: present
+  vars:
+    java_package: "{{ 'java-21-openjdk' if ansible_os_family == 'RedHat' else 'openjdk-21-jre' }}"
+
+- name: Install Jenkins (RedHat/Rocky/CentOS/Fedora)
+  when: ansible_os_family == "RedHat" and jenkins_check.rc != 0
+  block:
+    - name: Add Jenkins GPG key
+      ansible.builtin.rpm_key:
+        key: https://pkg.jenkins.io/redhat-stable/jenkins.io-2023.key
+        state: present
+
+    - name: Add Jenkins repository
+      ansible.builtin.yum_repository:
+        name: jenkins
+        description: Jenkins-stable
+        baseurl: https://pkg.jenkins.io/redhat-stable
+        enabled: true
+        gpgcheck: true
+        gpgkey: https://pkg.jenkins.io/redhat-stable/jenkins.io-2023.key
+
+    - name: Install Jenkins package
+      ansible.builtin.dnf:
+        name: jenkins
+        state: present
+
+- name: Install Jenkins (Debian/Ubuntu)
+  when: ansible_os_family == "Debian" and jenkins_check.rc != 0
+  block:
+    - name: Download Jenkins GPG key
+      ansible.builtin.get_url:
+        url: https://pkg.jenkins.io/debian-stable/jenkins.io-2023.key
+        dest: /tmp/jenkins.asc
+        mode: '0644'
+
+    - name: Convert and install Jenkins GPG key (dearmor for binary format)
+      ansible.builtin.shell: |
+        gpg --dearmor < /tmp/jenkins.asc > \
+          /usr/share/keyrings/jenkins-keyring.gpg
+      args:
+        creates: /usr/share/keyrings/jenkins-keyring.gpg
+
+    - name: Set permissions on Jenkins GPG keyring
+      ansible.builtin.file:
+        path: /usr/share/keyrings/jenkins-keyring.gpg
+        mode: '0644'
+
+    - name: Add Jenkins repository
+      ansible.builtin.apt_repository:
+        repo: "deb [signed-by=/usr/share/keyrings/jenkins-keyring.gpg] https://pkg.jenkins.io/debian-stable binary/"
+        state: present
+        filename: jenkins
+
+    - name: Update apt cache
+      ansible.builtin.apt:
+        update_cache: true
+
+    - name: Install Jenkins package
+      ansible.builtin.apt:
+        name: jenkins
+        state: present
+
+- name: Enable and start Jenkins service
+  ansible.builtin.systemd:
+    name: jenkins
+    enabled: true
+    state: started
+    daemon_reload: true
+
+- name: Wait for Jenkins to start
+  ansible.builtin.wait_for:
+    port: "{{ jenkins_port }}"
+    delay: 10
+    timeout: 60
+
+- name: Get Jenkins initial admin password
+  ansible.builtin.slurp:
+    src: /var/lib/jenkins/secrets/initialAdminPassword
+  register: jenkins_password
+  failed_when: false
+
+- name: Display Jenkins access information
+  ansible.builtin.debug:
+    msg:
+      - "=========================================="
+      - "Jenkins installed successfully"
+      - "=========================================="
+      - "Access URL: http://{{ ansible_default_ipv4.address }}:{{ jenkins_port }}"
+      - "Initial admin password: {{ jenkins_password.content | b64decode | trim if jenkins_password.content is defined else 'Check /var/lib/jenkins/secrets/initialAdminPassword' }}" # noqa yaml[line-length]
+      - ""
+      - "Complete setup by accessing Jenkins UI"
+      - "=========================================="

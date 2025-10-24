@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="256" height="256" viewBox="0 0 256 256" xmlns="http://www.w3.org/2000/svg">
+  <!-- Detailed icon version - best for 128x128 and larger -->
+  <!-- Centered lightning bolt, transparent background with subtle inner detail -->
+
+  <defs>
+    <linearGradient id="lightningGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#34D399;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#10B981;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+
+  <!-- Hexagon outline with transparent fill -->
+  <path d="M 128 20 L 220 74 L 220 182 L 128 236 L 36 182 L 36 74 Z"
+        fill="none"
+        stroke="#3B82F6"
+        stroke-width="6"
+        stroke-linejoin="round"/>
+
+  <!-- Inner hexagon detail (subtle) -->
+  <path d="M 128 35 L 205 79 L 205 177 L 128 221 L 51 177 L 51 79 Z"
+        fill="none"
+        stroke="#93C5FD"
+        stroke-width="1"
+        opacity="0.4"
+        stroke-linejoin="round"/>
+
+  <!-- Lightning bolt with gradient - centered -->
+  <path d="M 145 70 L 105 128 L 130 128 L 110 186 L 165 120 L 135 120 L 155 70 Z"
+        fill="url(#lightningGradient)"
+        stroke="#0D9668"
+        stroke-width="2"
+        stroke-linejoin="round"/>
+
+  <!-- Lightning bolt highlight -->
+  <path d="M 145 70 L 142 80 L 137 95 L 130 110 L 125 120 L 135 120 L 155 70 Z"
+        fill="#6EE7B7"
+        opacity="0.5"/>
+</svg>

@@ -1,0 +1,6 @@
+# Ignore generated inventory files
+localhost.yml
+localhost.ini
+
+# Keep example files
+!*.example

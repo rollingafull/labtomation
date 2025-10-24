@@ -1,0 +1,33 @@
+---
+#===============================================================================
+# Global Variables for DevOps Tools Installation
+#===============================================================================
+
+# Installation flags
+install_jenkins: true  # Set to false to skip Jenkins installation
+
+# Terraform configuration
+terraform_version: "latest"  # or specific version like "1.6.0"
+
+# HashiCorp Vault configuration
+vault_version: "latest"  # or specific version like "1.15.0"
+vault_config_dir: "/etc/vault.d"
+vault_data_dir: "/opt/vault/data"
+vault_user: "vault"
+vault_group: "vault"
+
+# Jenkins configuration (when enabled)
+jenkins_port: 8080
+jenkins_home: "/var/lib/jenkins"
+jenkins_user: "jenkins"
+jenkins_group: "jenkins"
+
+# Common packages to install
+common_packages:
+  - curl
+  - wget
+  - git
+  - vim
+  - btop
+  - jq
+  - unzip

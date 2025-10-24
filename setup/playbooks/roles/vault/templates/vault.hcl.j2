@@ -1,0 +1,13 @@
+ui = true
+
+storage "file" {
+  path = "{{ vault_data_dir }}"
+}
+
+listener "tcp" {
+  address     = "{{ vault_address }}:{{ vault_port }}"
+  tls_disable = 1
+}
+
+api_addr = "http://{{ vault_address }}:{{ vault_port }}"
+disable_mlock = true

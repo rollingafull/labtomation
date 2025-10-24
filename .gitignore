@@ -1,0 +1,8 @@
+.vscode/*
+.ansible/*
+.venv/*
+*.log
+*.pem
+*.key
+*ed25519*
+setup/*ed25519*
