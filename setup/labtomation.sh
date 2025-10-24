@@ -8,7 +8,7 @@
 # Author: rolling (rolling@a-full.com)
 # Created: 2025-10-04
 # Updated: 2025-10-24
-# Version: 1.0.1 - Bug Fixes
+# Version: 1.0.2
 #===============================================================================
 #
 # OVERVIEW:
@@ -227,7 +227,7 @@ setup_ssh_keys() {
 #-------------------------------------------------------------------------------
 
 main() {
-    log_header "Labtomation v1.0.1 - Proxmox Lab Automation"
+    log_header "Labtomation v1.0.2 - Proxmox Lab Automation"
 
     # Parse command line arguments
     parse_arguments "$@"

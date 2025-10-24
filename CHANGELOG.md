@@ -13,6 +13,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.0.2] - 2025-10-24
+
+### Removed
+
+- **README.md**: Removed `curl | bash` installation method
+  - Direct pipe method had buffering issues preventing final summary from displaying
+  - Download method is more reliable and provides better user experience
+  - Manual installation via git clone remains available as Option 2
+
+### Changed
+
+- **README.md**: Simplified installation instructions
+  - Single recommended method: download and execute install.sh
+  - Clearer instructions for both interactive and non-interactive modes
+
+---
+
 ## [1.0.1] - 2025-10-24
 
 ### Fixed
@@ -34,9 +51,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **install.sh**: Improved user experience for one-command installation
   - Interactive prompts work reliably in both local and piped execution
   - Clear error messages when terminal is not available
+  - Added comprehensive Vault initialization guide to final summary
+    - Step-by-step unsealing process (3 of 5 keys)
+    - Root token login instructions
+    - Vault UI access information
 - **labtomation.sh**: Enhanced interactive mode compatibility
   - OS selection and VM confirmation work with piped input
   - Consistent behavior across all execution methods
+
+### Documentation
+
+- **install.sh**: Enhanced post-installation guidance
+  - Added detailed Vault initialization steps to final summary
+  - Included Jenkins initial password retrieval instructions
+  - Clearer SSH connection examples
 
 ---
 
@@ -137,7 +165,7 @@ This is the first production-ready release of Labtomation, providing a complete 
 ### Infrastructure
 
 - **GitHub Repository**: https://github.com/rollingafull/labtomation
-- **One-line Installer**: `curl -fsSL https://raw.githubusercontent.com/rollingafull/labtomation/main/install.sh | bash`
+- **Quick Installer**: Download and execute install.sh from GitHub
 - **Automatic Cleanup**: Temporary files removed after installation (SSH keys preserved)
 
 ## [Unreleased]
