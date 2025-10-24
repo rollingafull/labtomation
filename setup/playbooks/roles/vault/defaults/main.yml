@@ -1,0 +1,12 @@
+---
+#===============================================================================
+# Vault Role Defaults
+#===============================================================================
+
+vault_version: "latest"
+vault_config_dir: "/etc/vault.d"
+vault_data_dir: "/opt/vault/data"
+vault_user: "vault"
+vault_group: "vault"
+vault_address: "0.0.0.0"
+vault_port: 8200

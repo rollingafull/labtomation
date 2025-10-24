@@ -1,0 +1,214 @@
+---
+# ===============================================================================
+# Role: vault
+# Description: Installs and configures HashiCorp Vault
+# ===============================================================================
+
+- name: Check if Vault is already installed
+  ansible.builtin.command: vault version
+  register: vault_check
+  changed_when: false
+  failed_when: false
+
+- name: Display current Vault version if installed
+  ansible.builtin.debug:
+    msg: "Vault is already installed: {{ vault_check.stdout_lines[0] }}"
+  when: vault_check.rc == 0
+
+- name: Install Vault (RedHat/Rocky/CentOS/Fedora)
+  when: ansible_os_family == "RedHat" and vault_check.rc != 0
+  block:
+    - name: Determine repository version
+      ansible.builtin.set_fact:
+        vault_repo_version: "{{ '9' if (ansible_distribution_major_version | int) >= 10 else ansible_distribution_major_version }}"
+
+    - name: Add HashiCorp GPG key
+      ansible.builtin.rpm_key:
+        key: https://rpm.releases.hashicorp.com/gpg
+        state: present
+
+    - name: Add HashiCorp repository
+      ansible.builtin.yum_repository:
+        name: hashicorp
+        description: HashiCorp Stable - $basearch
+        baseurl: "https://rpm.releases.hashicorp.com/RHEL/{{ vault_repo_version }}/$basearch/stable"
+        enabled: true
+        gpgcheck: true
+        gpgkey: https://rpm.releases.hashicorp.com/gpg
+
+    - name: Display repository version being used
+      ansible.builtin.debug:
+        msg: "Using HashiCorp repository for RHEL {{ vault_repo_version }}"
+
+    - name: Try to install Vault from HashiCorp repo
+      ansible.builtin.dnf:
+        name: vault
+        state: present
+      register: vault_repo_install
+      ignore_errors: true
+
+    - name: Install Vault from binary (fallback for unsupported distros)
+      when: vault_repo_install is failed
+      block:
+        - name: Get latest Vault version
+          ansible.builtin.uri:
+            url: https://checkpoint-api.hashicorp.com/v1/check/vault
+            return_content: true
+          register: vault_version_check
+
+        - name: Set Vault version
+          ansible.builtin.set_fact:
+            vault_latest_version: "{{ vault_version_check.json.current_version }}"
+
+        - name: Download Vault binary
+          ansible.builtin.get_url:
+            url: "https://releases.hashicorp.com/vault/{{ vault_latest_version }}/vault_{{ vault_latest_version }}_linux_amd64.zip"
+            dest: "/tmp/vault.zip"
+            mode: '0644'
+
+        - name: Install unzip if not present
+          ansible.builtin.package:
+            name: unzip
+            state: present
+
+        - name: Unzip Vault binary
+          ansible.builtin.unarchive:
+            src: "/tmp/vault.zip"
+            dest: "/usr/local/bin"
+            remote_src: true
+            mode: '0755'
+
+        - name: Remove downloaded zip
+          ansible.builtin.file:
+            path: "/tmp/vault.zip"
+            state: absent
+
+        - name: Display installation method
+          ansible.builtin.debug:
+            msg: "Vault installed from binary (HashiCorp repo not available for this OS version)"
+
+- name: Install Vault (Debian/Ubuntu)
+  when: ansible_os_family == "Debian" and vault_check.rc != 0
+  block:
+    - name: Install required packages for repository
+      ansible.builtin.apt:
+        name:
+          - gnupg
+          - apt-transport-https
+          - ca-certificates
+        state: present
+
+    - name: Download HashiCorp GPG key
+      ansible.builtin.get_url:
+        url: https://apt.releases.hashicorp.com/gpg
+        dest: /tmp/hashicorp.asc
+        mode: '0644'
+
+    - name: Convert and install HashiCorp GPG key (dearmor for binary format)
+      ansible.builtin.shell: |
+        gpg --dearmor < /tmp/hashicorp.asc > \
+          /usr/share/keyrings/hashicorp-archive-keyring.gpg
+      args:
+        creates: /usr/share/keyrings/hashicorp-archive-keyring.gpg
+
+    - name: Set permissions on GPG keyring
+      ansible.builtin.file:
+        path: /usr/share/keyrings/hashicorp-archive-keyring.gpg
+        mode: '0644'
+
+    - name: Add HashiCorp repository
+      ansible.builtin.apt_repository:
+        repo: "deb [arch=amd64 signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com {{ ansible_distribution_release }} main" # noqa yaml[line-length]
+        state: present
+        filename: hashicorp
+
+    - name: Update apt cache
+      ansible.builtin.apt:
+        update_cache: true
+
+    - name: Install Vault package
+      ansible.builtin.apt:
+        name: vault
+        state: present
+
+- name: Create Vault user
+  ansible.builtin.user:
+    name: "{{ vault_user }}"
+    system: true
+    shell: /bin/false
+    home: "{{ vault_data_dir }}"
+    create_home: false
+
+- name: Create Vault directories
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: "{{ vault_user }}"
+    group: "{{ vault_group }}"
+    mode: '0750'
+  loop:
+    - "{{ vault_config_dir }}"
+    - "{{ vault_data_dir }}"
+
+- name: Create Vault configuration file
+  ansible.builtin.template:
+    src: vault.hcl.j2
+    dest: "{{ vault_config_dir }}/vault.hcl"
+    owner: "{{ vault_user }}"
+    group: "{{ vault_group }}"
+    mode: '0640'
+  notify: restart vault
+
+- name: Create Vault systemd service file
+  ansible.builtin.template:
+    src: vault.service.j2
+    dest: /etc/systemd/system/vault.service
+    owner: root
+    group: root
+    mode: '0644'
+  notify:
+    - reload systemd
+    - restart vault
+
+- name: Enable and start Vault service
+  ansible.builtin.systemd:
+    name: vault
+    enabled: true
+    state: started
+    daemon_reload: true
+
+- name: Wait for Vault to be ready
+  ansible.builtin.wait_for:
+    port: 8200
+    delay: 2
+    timeout: 30
+
+- name: Verify Vault installation
+  ansible.builtin.command: vault version
+  register: vault_version
+  changed_when: false
+
+- name: Display Vault version
+  ansible.builtin.debug:
+    msg: "{{ vault_version.stdout_lines }}"
+
+- name: Check Vault status
+  ansible.builtin.command: vault status
+  environment:
+    VAULT_ADDR: 'http://127.0.0.1:8200'
+  register: vault_status
+  changed_when: false
+  failed_when: false
+
+- name: Display Vault status
+  ansible.builtin.debug:
+    msg:
+      - "=========================================="
+      - "Vault installed and running"
+      - "=========================================="
+      - "To initialize Vault, run:"
+      - "  export VAULT_ADDR='http://127.0.0.1:8200'"
+      - "  vault operator init"
+      - ""
+      - "Save the unseal keys and root token!"
+      - "=========================================="

@@ -1,0 +1,9 @@
+---
+#===============================================================================
+# Jenkins Role Defaults
+#===============================================================================
+
+jenkins_port: 8080
+jenkins_home: "/var/lib/jenkins"
+jenkins_user: "jenkins"
+jenkins_group: "jenkins"
