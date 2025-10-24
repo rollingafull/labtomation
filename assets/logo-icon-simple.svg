@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="128" height="128" viewBox="0 0 128 128" xmlns="http://www.w3.org/2000/svg">
+  <!-- Simple icon version - works great at small sizes (16x16 to 128x128) -->
+  <!-- Centered lightning bolt, transparent background -->
+
+  <!-- Hexagon outline with transparent fill -->
+  <path d="M 64 10 L 110 37 L 110 91 L 64 118 L 18 91 L 18 37 Z"
+        fill="none"
+        stroke="#3B82F6"
+        stroke-width="4"
+        stroke-linejoin="round"/>
+
+  <!-- Lightning bolt - centered -->
+  <path d="M 72 30 L 52 64 L 64 64 L 56 98 L 84 60 L 70 60 L 78 30 Z"
+        fill="#10B981"
+        stroke="#0D9668"
+        stroke-width="1.5"
+        stroke-linejoin="round"/>
+</svg>

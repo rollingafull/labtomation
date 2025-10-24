@@ -1,3 +1,9 @@
+<div align="center">
+
+![Labtomation Logo](../assets/logo-horizontal.svg)
+
+</div>
+
 # Idempotence in Labtomation
 
 ## What is Idempotence?
@@ -9,12 +15,14 @@ Idempotence means you can run the script multiple times with the same parameters
 ### 1. Idempotent Mode (Default)
 
 If the VM already exists, the script:
+
 - ✅ Detects the current VM state
 - ✅ Completes only missing configurations
 - ✅ Skips already completed steps
 - ✅ Does not fail if the VM exists
 
 **Example:**
+
 ```bash
 ./labtomation.sh --vmid 100 --os rocky10
 
@@ -26,11 +34,13 @@ If the VM already exists, the script:
 ### 2. Force Mode (--force)
 
 If you want to destroy and recreate the VM from scratch:
+
 - ⚠️ Stops the VM if it's running
 - ⚠️ Destroys the existing VM
 - ✅ Creates a new VM from scratch
 
 **Example:**
+
 ```bash
 ./labtomation.sh --vmid 100 --os rocky10 --force
 # ⚠️ Will destroy existing VM 100 and recreate it
@@ -41,6 +51,7 @@ If you want to destroy and recreate the VM from scratch:
 Always generates a new available VMID, so there are never conflicts:
 
 **Example:**
+
 ```bash
 ./labtomation.sh --os rocky10
 # First execution: creates VM 100
@@ -53,11 +64,13 @@ Always generates a new available VMID, so there are never conflicts:
 ### ✅ VM Creation (`create_vm`)
 
 **Behavior:**
+
 - If VM exists and is complete → SKIP (no changes)
 - If VM exists but incomplete → CONTINUES configuration
 - If `--force` is active → DESTROYS and RECREATES
 
 **Checks:**
+
 - EFI disk configured
 - SCSI0 disk present
 - Cloud-init drive
@@ -67,12 +80,14 @@ Always generates a new available VMID, so there are never conflicts:
 ### ✅ Disk Import (`import_disk`)
 
 **Behavior:**
+
 - If `scsi0` already exists → SKIP
 - If size differs → INFORMS (does not auto-resize)
 - If doesn't exist → IMPORTS image and RESIZES to requested size
 
 **Example output:**
-```
+
+```text
 ✓ Disk already attached to VM 100, skipping import
 ℹ Current disk size (32G) differs from requested (64G)
 ℹ To resize, use: qm resize 100 scsi0 64G
@@ -83,6 +98,7 @@ Always generates a new available VMID, so there are never conflicts:
 ### ✅ Boot Configuration (`configure_vm_boot`)
 
 **Behavior:**
+
 - Cloud-init drive: checks if `ide2:cloudinit` exists
 - Boot order: checks if `boot:order=scsi0` is configured
 - QEMU agent: checks if `agent:enabled=1` is configured
@@ -92,6 +108,7 @@ Always generates a new available VMID, so there are never conflicts:
 ### ✅ Cloud-Init (`configure_cloud_init`)
 
 **Behavior:**
+
 - User: compares current user with requested
 - SSH keys: always updates (safe to do)
 - DHCP network: checks if already configured
@@ -100,6 +117,7 @@ Always generates a new available VMID, so there are never conflicts:
 ### ✅ Image Download
 
 **Behavior:**
+
 ```bash
 if [ ! -f "$os_file" ]; then
     # Download image
@@ -111,6 +129,7 @@ fi
 ### ✅ SSH Keys
 
 **Behavior:**
+
 ```bash
 if [ -f "${ssh_key}.pub" ] && [ -f "$ssh_key" ]; then
     # Reuse existing keys
@@ -175,6 +194,7 @@ get_vm_state 100
 ```
 
 **Output:**
+
 ```json
 {
     "exists": true,
@@ -274,11 +294,13 @@ pvesh get /cluster/resources --type vm --output-format json | jq '.[] | select(.
 ### Filter VMs by Tags in Proxmox UI
 
 Tags appear in the Proxmox web interface:
+
 - "Tags" column in VM list
 - Tag filters available
 - Automatic colors for visual differentiation
 
 **Benefits:**
+
 - Quickly identify which services are installed
 - Filter VMs by capability (e.g., all VMs with Terraform)
 - Organize lab environment by function
@@ -301,32 +323,38 @@ Tags appear in the Proxmox web interface:
 ## Limitations
 
 ⚠️ **Does not update existing configurations** (unless you use `--force`)
+
 - If you change cores, memory, etc., you need `--force` to recreate
 - Already applied configurations are not modified
 
 ⚠️ **Does not automatically resize disks** (on existing VMs)
+
 - If disk exists, reports differences but doesn't resize
 - You must use `qm resize` manually
 - New VMs in v1.0.0+ properly resize disks during creation
 
 ⚠️ **Cloud-init runs only on first boot**
+
 - If VM already booted, cloud-init won't re-run
 - SSH key changes require `--force` to apply on running VM
 
 ## Best Practices
 
 1. **Use auto-VMID for testing**:
+
    ```bash
    ./labtomation.sh --os rocky10  # Generates automatic VMID
    ```
 
 2. **Use --force only when necessary**:
+
    ```bash
    # Only if you need to change base configuration
    ./labtomation.sh --vmid 100 --cores 4 --force
    ```
 
 3. **Check state before forcing**:
+
    ```bash
    qm config 100  # View current configuration
    # If it meets your needs, don't use --force
@@ -364,6 +392,7 @@ This is normal and correct - the disk is already configured.
 ### "Current disk size differs from requested"
 
 On existing VMs, you need to manually resize:
+
 ```bash
 qm disk resize 100 scsi0 +32G  # Add 32GB
 # or
@@ -436,16 +465,19 @@ When `--force` is used:
 ### Operating Systems
 
 ✅ **Rocky Linux 10**
+
 - Full idempotence support
 - Automatic ansible-core installation
 - RHEL 9 repository for HashiCorp tools
 
 ✅ **Debian 13 (Trixie)**
+
 - Modern GPG key handling
 - All tools install idempotently
 - Cloud-init support verified
 
 ✅ **Ubuntu 24.04 LTS (Noble)**
+
 - Complete compatibility
 - Same features as Debian 13
 - Tested and verified
@@ -459,6 +491,7 @@ When `--force` is used:
 ## Version History
 
 ### v1.0.0 (2025-10-23) - First Stable Release 🎉
+
 - ✅ Production-ready idempotence across all operations
 - ✅ Fixed disk resize (proper `qm disk resize` implementation)
 - ✅ Service-based tagging system (OS + tools)

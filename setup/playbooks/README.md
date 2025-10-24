@@ -1,3 +1,9 @@
+<div align="center">
+
+![Labtomation Logo](../../assets/logo-horizontal.svg)
+
+</div>
+
 # Ansible Playbooks for DevOps Tools
 
 These playbooks install and configure DevOps tools on lab VMs created with Labtomation.

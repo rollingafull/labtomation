@@ -1,11 +1,17 @@
-# Labtomation
+<div align="center">
+
+![Labtomation Logo](assets/logo-horizontal.svg)
+
+---
 
 **Infrastructure as Code for Home Labs and Small Businesses**
 
 Labtomation is an automation framework designed to simplify the deployment and management of homelab and small business infrastructure using modern DevOps practices. Built on Proxmox VE, it provides a streamlined path from bare metal to a fully functional infrastructure management platform.
 
+</div>
+
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
-[![Proxmox](https://img.shields.io/badge/Proxmox-VE%207.0%2B-orange)](https://www.proxmox.com/)
+[![Proxmox](https://img.shields.io/badge/Proxmox-VE%208.0%2B-orange)](https://www.proxmox.com/)
 
 **Supported Operating Systems:**
 
@@ -20,8 +26,6 @@ Labtomation is an automation framework designed to simplify the deployment and m
 [![Vault](https://img.shields.io/badge/Vault-Latest-000000?logo=vault&logoColor=white)](https://www.vaultproject.io/)
 [![Jenkins](https://img.shields.io/badge/Jenkins-Latest-D24939?logo=jenkins&logoColor=white)](https://www.jenkins.io/)
 
----
-
 ## 📖 Table of Contents
 
 - [Overview](#overview)
@@ -34,8 +38,6 @@ Labtomation is an automation framework designed to simplify the deployment and m
 - [Contributing](#contributing)
 - [License](#license)
 - [Support](#support)
-
----
 
 ## 🎯 Overview
 
@@ -57,11 +59,9 @@ From this management VM, you'll be able to:
 - Store secrets securely in **HashiCorp Vault**
 - Implement CI/CD pipelines with **Jenkins**
 
----
-
 ## 🚀 Current Status
 
-**Version:** 1.0.0 (Stable Release) 🎉
+**Version:** 1.0.0 🎉
 
 Labtomation has reached its **first stable release**, providing a solid foundation for homelab infrastructure management:
 
@@ -107,8 +107,6 @@ Future versions will expand Labtomation into a complete infrastructure managemen
   - Deployment workflows
   - Rollback procedures
 
----
-
 ## ✨ Features
 
 ### Current Features
@@ -129,8 +127,6 @@ Future versions will expand Labtomation into a complete infrastructure managemen
 - **Cloud-init**: Modern VM initialization for reproducibility
 - **Well-Documented**: Comprehensive guides and inline documentation
 - **Enterprise-Grade**: Production-ready default configurations
-
----
 
 ## 🚀 Quick Start
 
@@ -202,8 +198,6 @@ http://<vm-ip>:8200
 http://<vm-ip>:8080
 ```
 
----
-
 ## 📋 Requirements
 
 ### Proxmox Host
@@ -228,8 +222,6 @@ http://<vm-ip>:8080
 - Mature package repositories (AppStream + EPEL)
 - Optimal compatibility with HashiCorp tools
 - Widely adopted in corporate environments
-
----
 
 ## 🗺️ Roadmap
 
@@ -277,8 +269,6 @@ http://<vm-ip>:8080
 - [ ] Web-based management interface
 - [ ] Multi-site support
 
----
-
 ## 📚 Documentation
 
 ### Core Documentation
@@ -310,8 +300,6 @@ All configuration is centralized in `setup/config/`:
 | Re-run safely | `./labtomation.sh --vmid <id> --os rocky10` |
 | Force recreate | `./labtomation.sh --vmid <id> --os rocky10 --force` |
 
----
-
 ## 🤝 Contributing
 
 Contributions are welcome! Whether you're fixing bugs, improving documentation, or proposing new features, your help is appreciated.
@@ -341,8 +329,6 @@ Found a bug or have a feature request? Please [open an issue](https://github.com
 - Expected vs actual behavior
 - Your environment (Proxmox version, OS, etc.)
 
----
-
 ## 📄 License
 
 Labtomation is released under the **Apache License 2.0**.
@@ -365,8 +351,6 @@ See the [LICENSE](LICENSE) file for the full license text.
 
 **Copyright © 2025 rolling**
 
----
-
 ## 💬 Support
 
 ### Community Support
@@ -381,8 +365,6 @@ For enterprise deployments, custom development, or professional support, please 
 
 **Email**: <rolling@a-full.com>
 
----
-
 ## 🌟 Acknowledgments
 
 Labtomation builds upon the excellent work of many open-source projects:
@@ -394,16 +376,12 @@ Labtomation builds upon the excellent work of many open-source projects:
 - [Jenkins](https://www.jenkins.io/) - Automation server
 - [Rocky Linux](https://rockylinux.org/) - Enterprise Linux distribution
 
----
-
 ## 📊 Project Stats
 
 ![GitHub stars](https://img.shields.io/github/stars/rollingafull/labtomation?style=social)
 ![GitHub forks](https://img.shields.io/github/forks/rollingafull/labtomation?style=social)
 ![GitHub issues](https://img.shields.io/github/issues/rollingafull/labtomation)
 ![GitHub pull requests](https://img.shields.io/github/issues-pr/rollingafull/labtomation)
-
----
 
 <div align="center">
 

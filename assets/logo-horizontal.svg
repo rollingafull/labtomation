@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="800" height="200" viewBox="0 0 800 200" xmlns="http://www.w3.org/2000/svg">
+  <!-- Horizontal logo with Space Grotesk font (REAL FONT) -->
+  <!-- Centered lightning bolt, transparent background -->
+
+  <defs>
+    <style type="text/css">
+      @font-face {
+        font-family: 'Space Grotesk';
+        src: url('fonts/SpaceGrotesk.ttf') format('truetype');
+        font-weight: 300 700;
+        font-display: swap;
+      }
+    </style>
+    <linearGradient id="lightningGradientSpace" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#34D399;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#10B981;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+
+  <!-- Icon: Hexagon with transparent fill -->
+  <path d="M 100 25 L 165 62.5 L 165 137.5 L 100 175 L 35 137.5 L 35 62.5 Z"
+        fill="none"
+        stroke="#3B82F6"
+        stroke-width="4"
+        stroke-linejoin="round"/>
+
+  <!-- Icon: Lightning bolt - centered -->
+  <path d="M 112 45 L 82 95 L 98 95 L 88 150 L 125 90 L 107 90 L 117 45 Z"
+        fill="url(#lightningGradientSpace)"
+        stroke="#0D9668"
+        stroke-width="1.5"
+        stroke-linejoin="round"/>
+
+  <!-- Wordmark: LABTOMATION with REAL Space Grotesk font -->
+  <text x="210" y="130"
+        font-family="'Space Grotesk', 'Inter', sans-serif"
+        font-size="70"
+        font-weight="700"
+        letter-spacing="3"
+        fill="#1F2937">LABTOMATION</text>
+
+  <!-- Tagline with Space Grotesk -->
+  <text x="212" y="165"
+        font-family="'Space Grotesk', 'Inter', sans-serif"
+        font-size="18"
+        font-weight="400"
+        letter-spacing="1"
+        fill="#6B7280">Infrastructure Automation for Labs</text>
+</svg>

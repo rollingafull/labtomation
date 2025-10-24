@@ -1,11 +1,15 @@
+<div align="center">
+
+![Labtomation Logo](assets/logo-horizontal.svg)
+
+</div>
+
 # Changelog
 
 All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
-
----
 
 ## [1.0.0] - 2025-10-23 🎉
 
@@ -107,8 +111,6 @@ This is the first production-ready release of Labtomation, providing a complete 
 - **One-line Installer**: `curl -fsSL https://raw.githubusercontent.com/rollingafull/labtomation/main/install.sh | bash`
 - **Automatic Cleanup**: Temporary files removed after installation (SSH keys preserved)
 
----
-
 ## [Unreleased]
 
 ### Infrastructure Templates
@@ -140,8 +142,6 @@ This is the first production-ready release of Labtomation, providing a complete 
 - Deployment workflows
 - Rollback procedures
 
----
-
 ## Release Notes
 
 ### Version 1.0.0 - Production Ready
@@ -172,8 +172,6 @@ Future versions will include:
 - Backward compatibility when possible
 - Detailed upgrade documentation
 
----
-
 ## Links
 
 - [GitHub Repository](https://github.com/rollingafull/labtomation)
@@ -182,8 +180,6 @@ Future versions will include:
 - [Ansible Playbooks](setup/playbooks/README.md)
 - [Issue Tracker](https://github.com/rollingafull/labtomation/issues)
 - [License](LICENSE) - Apache 2.0
-
----
 
 **Copyright © 2025 rolling**
 

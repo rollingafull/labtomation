@@ -1,12 +1,16 @@
+<div align="center">
+
+![Labtomation Logo](../assets/logo-horizontal.svg)
+
+</div>
+
 # Labtomation Setup Scripts
 
 Automated setup scripts for creating DevOps lab environments on Proxmox VE.
 
-## Version 1.0.0 - First Stable Release 🎉
+## Version 1.0.0
 
 Production-ready automation with Ansible-based tool installation, comprehensive error handling, and full idempotence.
-
----
 
 ## Overview
 
@@ -17,8 +21,6 @@ This directory contains scripts that automate the complete setup of a DevOps lab
 3. **playbooks/** - Ansible playbooks for DevOps tools
 4. **config/** - Configuration files for OS and hardware
 5. **\*_lib.sh** - Reusable function libraries
-
----
 
 ## Quick Start
 
@@ -78,8 +80,6 @@ Interactive mode will prompt for:
 | `--storage <name>` | Storage name | Auto-detected |
 | `--force` | Force recreate if exists | No |
 
----
-
 ## What Gets Installed
 
 ### Base System (via Bash)
@@ -101,8 +101,6 @@ Interactive mode will prompt for:
 - SSH keys generated automatically
 - Cloud-init configuration
 - Service auto-start on boot
-
----
 
 ## Supported Operating Systems
 
@@ -140,8 +138,6 @@ Interactive mode will prompt for:
 - Full compatibility with HashiCorp tools
 - Java 21 support
 - LTS version with 5-year support
-
----
 
 ## Architecture
 
@@ -215,8 +211,6 @@ setup/
         └── jenkins/
 ```
 
----
-
 ## Features
 
 ### Idempotence
@@ -253,8 +247,6 @@ Example: `ubuntu2404;ansible;terraform;vault;jenkins`
 - Jenkins with latest security updates
 - Cloud-init user with sudo access
 
----
-
 ## Requirements
 
 ### Proxmox Host
@@ -269,8 +261,6 @@ Example: `ubuntu2404;ansible;terraform;vault;jenkins`
 - jq - JSON processing
 - wget - File downloads
 - gpg - GPG key management
-
----
 
 ## Configuration Files
 
@@ -289,8 +279,6 @@ Network bridge, SSH settings, and key locations.
 ### config/labtomation.conf
 
 Main configuration (currently unused, reserved for future features).
-
----
 
 ## Troubleshooting
 
@@ -323,8 +311,6 @@ Main configuration (currently unused, reserved for future features).
 - Check firewall rules on Proxmox/VM
 - Access: `http://<vm-ip>:8200`
 
----
-
 ## Examples
 
 ### Create Lab with Specific VMID
@@ -353,8 +339,6 @@ Main configuration (currently unused, reserved for future features).
 ```bash
 ./labtomation.sh --vmid 100 --os rocky10 --force
 ```
-
----
 
 ## Accessing Services
 
@@ -400,8 +384,6 @@ ssh <user>@<vm-ip>
 terraform version
 ```
 
----
-
 ## Advanced Usage
 
 ### Using Ansible Playbooks Independently
@@ -440,8 +422,6 @@ vault_port: 8200
 jenkins_port: 9090
 ```
 
----
-
 ## Development
 
 ### Adding New OS Support
@@ -466,8 +446,6 @@ jenkins_port: 9090
 3. Add configuration to `playbooks/group_vars/all.yml`
 4. Test on all supported OS types
 
----
-
 ## Known Limitations
 
 - Does not support LXC containers (VM only)
@@ -476,13 +454,12 @@ jenkins_port: 9090
 - Jenkins requires manual setup wizard
 - No automatic SSL/TLS configuration
 
----
-
 ## Version History
 
 ### 1.0.0 (2025-10-23) - First Stable Release 🎉
 
 **Foundation Complete:**
+
 - Automated management VM creation with Q35 + EFI
 - DevOps toolchain pre-installed (Ansible, Terraform, Vault, Jenkins)
 - Multi-OS support (Rocky 10, Debian 13, Ubuntu 24.04)
@@ -494,6 +471,7 @@ jenkins_port: 9090
 - Comprehensive documentation in English
 
 **Key Features:**
+
 - Fixed disk resize issue (qm disk resize implementation)
 - Modern GPG key handling for Debian/Ubuntu
 - Java 21 for Jenkins (official recommendation)
@@ -509,8 +487,6 @@ jenkins_port: 9090
 - Removed LXC support
 - Streamlined workflow
 
----
-
 ## Support
 
 For issues, suggestions, or contributions:
@@ -519,8 +495,6 @@ For issues, suggestions, or contributions:
 - Review state files in `state/` directory
 - Verify Proxmox version compatibility
 - Ensure internet connectivity
-
----
 
 ## License
 
