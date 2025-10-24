@@ -137,15 +137,7 @@ Future versions will expand Labtomation into a complete infrastructure managemen
 - **Storage**: At least 10GB free space
 - **Network**: DHCP-enabled bridge (e.g., vmbr0)
 
-### Option 1: One-Command Installation (Recommended)
-
-Run directly from GitHub:
-
-```bash
-curl -fsSL https://raw.githubusercontent.com/rollingafull/labtomation/main/install.sh | bash
-```
-
-Or download and customize:
+### Option 1: Quick Installation (Recommended)
 
 ```bash
 # Download installer
@@ -155,7 +147,7 @@ chmod +x install.sh
 # Interactive mode (recommended for first-time users)
 ./install.sh
 
-# With specific options (Rocky Linux recommended)
+# Or with specific options (Rocky Linux recommended)
 ./install.sh --os rocky10 --cores 4 --memory 16384 --disk 50
 ```
 
