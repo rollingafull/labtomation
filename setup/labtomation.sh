@@ -7,8 +7,8 @@
 #-------------------------------------------------------------------------------
 # Author: rolling (rolling@a-full.com)
 # Created: 2025-10-04
-# Updated: 2025-10-23
-# Version: 1.0.0 - First Stable Release
+# Updated: 2025-10-24
+# Version: 1.0.1 - Bug Fixes
 #===============================================================================
 #
 # OVERVIEW:
@@ -181,9 +181,9 @@ select_os_interactive() {
     done
     echo ""
 
-    # Read user selection
+    # Read user selection (using /dev/tty for piped input compatibility)
     while true; do
-        read -rp "Enter choice [1-3] (default=1): " choice
+        read -rp "Enter choice [1-3] (default=1): " choice </dev/tty
 
         if [[ -z "$choice" ]]; then
             choice=1
@@ -213,7 +213,7 @@ setup_ssh_keys() {
         log_step "Using existing SSH key: ${ssh_key}" "INFO" >&2
     else
         log_step "Generating new SSH key" "INFO" >&2
-        ssh-keygen -t ed25519 -f "$ssh_key" -N "" -C "labtomation@proxmox"
+        ssh-keygen -t ed25519 -f "$ssh_key" -N "" -C "labtomation@proxmox" >&2
         chmod 600 "$ssh_key"
         chmod 644 "${ssh_key}.pub"
         log_step "SSH key generated: ${ssh_key}" "SUCCESS" >&2
@@ -227,7 +227,7 @@ setup_ssh_keys() {
 #-------------------------------------------------------------------------------
 
 main() {
-    log_header "Labtomation v2.1.0 - Proxmox Lab Automation"
+    log_header "Labtomation v1.0.1 - Proxmox Lab Automation"
 
     # Parse command line arguments
     parse_arguments "$@"
@@ -303,7 +303,8 @@ main() {
     echo "=========================================="
     echo ""
 
-    read -rp "Continue with VM creation? [Y/n]: " confirm
+    # Read confirmation (using /dev/tty for piped input compatibility)
+    read -rp "Continue with VM creation? [Y/n]: " confirm </dev/tty
     echo ""
 
     if [[ "$confirm" =~ ^[Nn] ]]; then
