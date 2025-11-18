@@ -1,0 +1,40 @@
+---
+# Create Proxmox API role with appropriate permissions
+
+- name: Check if role already exists
+  ansible.builtin.command: "pveum role list"
+  register: role_list
+  changed_when: false
+
+- name: Parse role list
+  ansible.builtin.set_fact:
+    api_role_exists: "{{ proxmox_api_role_name in role_list.stdout }}"
+
+- name: Define role privileges
+  ansible.builtin.set_fact:
+    role_privileges: "VM.Allocate,VM.Audit,VM.Config.Disk,VM.Config.CPU,VM.Config.Memory,VM.Config.Network,VM.Config.Options,VM.PowerMgmt,VM.Console,Datastore.Allocate,Datastore.AllocateSpace,Datastore.Audit,Pool.Allocate,Pool.Audit,SDN.Use,Sys.Audit,Sys.Modify,VM.Clone,VM.Migrate,VM.Snapshot,VM.Backup"
+
+- name: Create API role
+  ansible.builtin.command: >
+    pveum role add {{ proxmox_api_role_name }}
+    --privs "{{ role_privileges }}"
+  when: not api_role_exists
+  register: api_role_created
+
+- name: Update role privileges if role exists
+  ansible.builtin.command: >
+    pveum role modify {{ proxmox_api_role_name }}
+    --privs "{{ role_privileges }}"
+  when: api_role_exists
+  register: api_role_updated
+
+- name: Assign role to API user
+  ansible.builtin.command: >
+    pveum aclmod /
+    --user {{ proxmox_api_user }}
+    --role {{ proxmox_api_role_name }}
+  register: role_assigned
+
+- name: Display API role status
+  ansible.builtin.debug:
+    msg: "✓ API role '{{ proxmox_api_role_name }}' configured and assigned to {{ proxmox_api_user }}"

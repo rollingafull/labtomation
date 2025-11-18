@@ -1,0 +1,48 @@
+---
+# Setup SSH key authentication for labtomation user
+
+- name: Read Proxmox public SSH key from labtomation VM
+  ansible.builtin.slurp:
+    src: "/home/labtomation/.security/.pve_id_ed25519.pub"
+  register: ssh_public_key_content
+  delegate_to: localhost
+  become: false
+
+- name: Decode SSH public key
+  ansible.builtin.set_fact:
+    ssh_public_key: "{{ ssh_public_key_content.content | b64decode | trim }}"
+
+- name: Create .ssh directory for labtomation user
+  ansible.builtin.file:
+    path: "/home/labtomation/.ssh"
+    state: directory
+    owner: "labtomation"
+    group: "labtomation"
+    mode: '0700'
+
+- name: Add Proxmox SSH public key to authorized_keys
+  ansible.posix.authorized_key:
+    user: "labtomation"
+    key: "{{ ssh_public_key }}"
+    state: present
+    exclusive: false
+  register: ssh_key_added
+
+- name: Set correct permissions on authorized_keys
+  ansible.builtin.file:
+    path: "/home/labtomation/.ssh/authorized_keys"
+    owner: "labtomation"
+    group: "labtomation"
+    mode: '0600'
+
+- name: Test SSH key authentication
+  ansible.builtin.command: "ssh -i /home/labtomation/.security/.pve_id_ed25519 -o BatchMode=yes -o ConnectTimeout=5 labtomation@{{ ansible_host }} 'echo success'"
+  register: ssh_test
+  delegate_to: localhost
+  become: false
+  changed_when: false
+  failed_when: false
+
+- name: Display SSH key setup status
+  ansible.builtin.debug:
+    msg: "{{ '✓ SSH key authentication working' if ssh_test.rc == 0 else '⚠ SSH key test failed, but key was added' }}"

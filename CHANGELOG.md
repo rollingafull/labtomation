@@ -13,6 +13,178 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [2.0.0] - 2025-10-27 🎉
+
+### Major Release - Proxmox Integration & Vault Automation
+
+This is a major release that adds complete Proxmox cluster management capabilities and automated Vault initialization.
+
+### Added
+
+#### Proxmox Integration
+
+- **Automated Proxmox Cluster Management**: Complete suite of Ansible playbooks for Proxmox VE cluster automation
+  - `bootstrap_proxmox_cluster.yml` - Full cluster bootstrap automation
+  - `manage_proxmox_vms.yml` - VM management via API
+  - Network scanning and discovery of Proxmox nodes
+  - Automatic API token generation and Vault storage
+
+- **New Ansible Roles for Proxmox**:
+  - `vault_integration` - AppRole authentication setup for Vault
+  - `proxmox_discovery` - Network scanning to find Proxmox nodes
+  - `proxmox_bootstrap` - Node configuration and user setup
+  - `proxmox_management` - Ongoing VM/LXC management
+
+- **SSH Key Management**:
+  - Separated SSH keys for different purposes:
+    - `lab_id_ed25519` - For lab VMs/LXC created with Terraform
+    - `pve_id_ed25519` - For Proxmox node access
+  - Automatic key generation and distribution
+  - Secure backup with immutable flags
+
+#### Vault Automation
+
+- **vault_init Role**: Complete Vault initialization and security automation
+  - Automatic Vault initialization on first boot
+  - Secure credential storage in `/home/labtomation/.security/.vault`
+  - Auto-unseal using stored keys (3 of 5)
+  - SSH key backup with immutable flags (`chattr +i`)
+  - Environment file creation for easy CLI access
+  - Comprehensive security verification
+
+- **Security Directory Structure**:
+  - Created `/home/labtomation/.security/`
+  - Hidden files for SSH keys and credentials
+  - Immutable flags on critical files
+
+- **Vault Integration**:
+  - AppRole authentication for production security
+  - Automatic token management
+  - Playbooks can read Vault credentials automatically
+  - Environment file for manual access: `.vault_env.sh` (hidden, 400 permissions)
+
+#### Documentation
+
+- **PROXMOX_README.md**: Comprehensive guide for Proxmox integration
+  - Architecture diagrams
+  - Quick start guide
+  - Security features documentation
+  - Troubleshooting section
+
+- **vault_init Role Documentation**:
+  - README.md - Complete role documentation
+  - TESTING.md - Testing guide and validation results
+
+- **Test Playbooks**:
+  - `test_vault_init.yml` - Standalone testing for vault_init role
+
+### Changed
+
+- **labtomation.sh v2.0.0**:
+  - Removed inline bash security script
+  - Now uses vault_init Ansible role for security setup
+  - Updated to copy SSH keys to VM for role consumption
+  - Enhanced final summary with new security features
+
+- **setup_devops_tools.yml**:
+  - Added vault_init role execution after vault installation
+  - Updated post-installation summary
+  - Added vault_init tag support
+
+- **Vault Configuration**:
+  - Credentials file format updated for easier parsing
+  - Environment file includes helper functions
+  - Auto-unseal on system startup
+
+### Security Enhancements
+
+- **Immutable File Protection**: Critical files protected with `chattr +i`
+  - Vault credentials
+  - SSH key backups
+  - Prevents accidental deletion or modification
+
+- **Granular Sudo Permissions**: Labtomation user on Proxmox nodes
+  - Limited to specific commands only
+  - No full root access
+  - Auditable command execution
+
+- **AppRole Authentication**: Production-ready Vault authentication
+  - Service-to-service authentication
+  - Limited scope and permissions
+  - Automatic token renewal
+
+- **Credential Segregation**: Separate credentials for different purposes
+  - SSH keys for different access levels
+  - API tokens for automation
+  - All stored securely in Vault
+
+### Infrastructure
+
+- **Modular Architecture**: Clean separation of concerns
+  - VM creation (labtomation.sh)
+  - Tool installation (setup_devops_tools.yml)
+  - Security setup (vault_init role)
+  - Proxmox management (dedicated playbooks)
+
+- **Idempotent Operations**: All new playbooks are idempotent
+  - Safe to run multiple times
+  - Proper state detection
+  - No duplicate resources
+
+### Testing
+
+- **Comprehensive Testing**:
+  - Syntax validation for all new playbooks
+  - YAML structure validation
+  - Test playbooks for independent role testing
+  - Documented testing procedures
+
+### Breaking Changes
+
+- **SSH Key Names Changed**:
+  - `id_ed25519` → `lab_id_ed25519` (for lab VMs/LXC)
+  - New `pve_id_ed25519` (for Proxmox nodes)
+  - Automatic migration in new installations
+
+- **Vault Credentials Location Changed**:
+  - Old: `/home/labtomation/.vault_env`
+  - New: `/home/labtomation/.security/.vault` (credentials)
+  - New: `/home/labtomation/.security/.vault_env.sh` (environment, 400)
+
+### Migration Guide
+
+For existing v1.x installations:
+
+1. **SSH Keys**: Rename existing keys or regenerate
+
+   ```bash
+   mv /opt/labtomation/setup/id_ed25519 /opt/labtomation/setup/lab_id_ed25519
+   mv /opt/labtomation/setup/id_ed25519.pub /opt/labtomation/setup/lab_id_ed25519.pub
+   ```
+
+2. **Vault Initialization**: Run vault_init role manually
+
+   ```bash
+   cd /opt/labtomation/playbooks
+   ansible-playbook test_vault_init.yml
+   ```
+
+3. **Update Scripts**: Pull latest version and re-run setup if needed
+
+### Known Issues
+
+- None reported
+
+### Upgrade Path
+
+**From v1.0.x to v2.0.0**:
+
+- Recommended: Fresh installation for best experience
+- Manual migration possible for existing VMs
+- Vault data preserved if using same initialization keys
+
+---
+
 ## [1.0.2] - 2025-10-24
 
 ### Removed

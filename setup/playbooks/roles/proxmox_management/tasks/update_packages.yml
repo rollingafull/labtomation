@@ -1,0 +1,30 @@
+---
+# Update packages on Proxmox node
+
+- name: Update apt cache
+  apt:
+    update_cache: true
+    cache_valid_time: 3600
+  become: true
+
+- name: Check for upgradeable packages
+  command: apt list --upgradable
+  register: upgradeable_packages
+  changed_when: false
+
+- name: Display upgradeable packages count
+  debug:
+    msg: "{{ upgradeable_packages.stdout_lines | length - 1 }} package(s) available for upgrade"
+
+- name: Upgrade packages
+  apt:
+    upgrade: dist
+    autoremove: "{{ autoremove | bool }}"
+  become: true
+  when: upgrade_packages | bool
+  register: package_upgrade
+
+- name: Display upgrade status
+  debug:
+    msg: "{{ '✓ Packages upgraded' if package_upgrade.changed else '✓ No packages to upgrade' }}"
+  when: upgrade_packages | bool

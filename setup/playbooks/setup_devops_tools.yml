@@ -39,17 +39,40 @@
       when: ansible_os_family == "RedHat"
       tags: [always]
 
-  roles:
-    - role: common
+  tasks:
+    # Execute common role
+    - name: Include common role
+      ansible.builtin.include_role:
+        name: common
       tags: [common, always]
 
-    - role: terraform
+    # Execute terraform role
+    - name: Include terraform role
+      ansible.builtin.include_role:
+        name: terraform
       tags: [terraform, devops]
 
-    - role: vault
+    # Execute vault role
+    - name: Include vault role
+      ansible.builtin.include_role:
+        name: vault
       tags: [vault, devops]
 
-    - role: jenkins
+    # Force handler execution to restart Vault service before initialization
+    - name: Flush handlers to ensure Vault service is restarted
+      ansible.builtin.meta: flush_handlers
+      tags: [vault, vault_init, devops]
+
+    # Execute vault_init role after Vault service is stable
+    - name: Include vault_init role
+      ansible.builtin.include_role:
+        name: vault_init
+      tags: [vault, vault_init, devops]
+
+    # Execute jenkins role
+    - name: Include jenkins role
+      ansible.builtin.include_role:
+        name: jenkins
       tags: [jenkins, devops, optional]
       when: install_jenkins | default(false) | bool
 
@@ -63,6 +86,14 @@
           - "Installed tools can be verified with:"
           - "  terraform version"
           - "  vault version"
+          - "  vault status"
           - "  systemctl status jenkins  # if installed"
+          - ""
+          - "Vault has been initialized and configured"
+          - "Credentials stored in: /home/labtomation/.security/.vault"
+          - "Environment file: /home/labtomation/.security/.vault_env.sh"
+          - ""
+          - "To use Vault CLI:"
+          - "  source /home/labtomation/.security/.vault_env.sh"
           - "=========================================="
       tags: [always]

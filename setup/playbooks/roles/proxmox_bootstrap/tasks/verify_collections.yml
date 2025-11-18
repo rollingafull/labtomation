@@ -1,0 +1,23 @@
+---
+# Verify required Ansible collections are available
+
+- name: Check ansible.posix collection availability
+  ansible.builtin.command: ansible-galaxy collection list ansible.posix
+  register: posix_collection_check
+  changed_when: false
+  failed_when: false
+  delegate_to: localhost
+  become: false
+
+- name: Display collection status
+  ansible.builtin.debug:
+    msg: |
+      {% if 'ansible.posix' in posix_collection_check.stdout %}
+      ✓ ansible.posix collection is installed
+      {% else %}
+      ⚠ ansible.posix collection not found - will use fallback methods
+      {% endif %}
+
+- name: Set fact for collection availability
+  ansible.builtin.set_fact:
+    ansible_posix_available: "{{ 'ansible.posix' in posix_collection_check.stdout }}"

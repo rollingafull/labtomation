@@ -1,0 +1,19 @@
+---
+# Default variables for proxmox_discovery role
+
+# Network scanning
+proxmox_scan_port: 8006
+proxmox_scan_timeout: 5
+
+# Required packages
+proxmox_discovery_packages:
+  - nmap
+  - sshpass
+
+# SSH settings for initial discovery
+discovery_ssh_timeout: 10
+discovery_ssh_options: "-o ConnectTimeout={{ discovery_ssh_timeout }} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
+
+# Inventory output
+inventory_output_dir: /opt/labtomation/playbooks/inventory
+inventory_file_name: proxmox_nodes.yml

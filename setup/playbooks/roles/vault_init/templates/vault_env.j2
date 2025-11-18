@@ -1,0 +1,65 @@
+#!/bin/bash
+# Vault Environment Configuration
+# Generated: {{ ansible_date_time.iso8601 }}
+# Source this file to configure Vault CLI: source {{ vault_env_file }}
+
+# Vault server address
+export VAULT_ADDR="{{ vault_addr }}"
+
+# Vault root token (use with caution in production)
+export VAULT_TOKEN="{{ vault_root_token }}"
+
+# Vault skip verify (for self-signed certificates)
+{% if vault_skip_verify | default(false) %}
+export VAULT_SKIP_VERIFY=1
+{% endif %}
+
+# Additional Vault configuration
+export VAULT_FORMAT="json"
+
+# Helper function to check Vault status
+vault_status() {
+    vault status 2>/dev/null
+    if [ $? -eq 0 ]; then
+        echo "✓ Vault is unsealed and ready"
+    else
+        echo "⚠ Vault may be sealed or unreachable"
+    fi
+}
+
+# Helper function to unseal Vault (if sealed)
+vault_unseal() {
+    local creds_file="{{ vault_creds_file }}"
+
+    if [ ! -f "$creds_file" ]; then
+        echo "Error: Credentials file not found: $creds_file"
+        return 1
+    fi
+
+    # Temporarily remove immutable flag
+    sudo chattr -i "$creds_file" 2>/dev/null
+
+    # Read unseal keys
+    local key1=$(grep "^unseal_key_1=" "$creds_file" | cut -d= -f2)
+    local key2=$(grep "^unseal_key_2=" "$creds_file" | cut -d= -f2)
+    local key3=$(grep "^unseal_key_3=" "$creds_file" | cut -d= -f2)
+
+    # Restore immutable flag
+    sudo chattr +i "$creds_file" 2>/dev/null
+
+    # Unseal Vault
+    vault operator unseal "$key1" >/dev/null
+    vault operator unseal "$key2" >/dev/null
+    vault operator unseal "$key3" >/dev/null
+
+    echo "✓ Vault unsealed successfully"
+}
+
+# Display environment info
+echo "Vault environment configured:"
+echo "  VAULT_ADDR: $VAULT_ADDR"
+echo "  VAULT_TOKEN: ****${VAULT_TOKEN:(-8)}"
+echo ""
+echo "Available commands:"
+echo "  vault_status  - Check Vault status"
+echo "  vault_unseal  - Unseal Vault if sealed"

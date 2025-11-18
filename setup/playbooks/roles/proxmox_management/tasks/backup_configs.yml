@@ -1,0 +1,33 @@
+---
+# Backup Proxmox configuration
+
+- name: Create backup directory
+  ansible.builtin.file:
+    path: "{{ backup_destination }}"
+    state: directory
+    mode: '0755'
+  delegate_to: localhost
+  become: false
+
+- name: Archive /etc/pve directory
+  archive:
+    path: /etc/pve
+    dest: "/tmp/pve_{{ inventory_hostname }}_{{ ansible_date_time.epoch }}.tar.gz"
+    format: gz
+  become: true
+
+- name: Fetch backup to labtomation VM
+  fetch:
+    src: "/tmp/pve_{{ inventory_hostname }}_{{ ansible_date_time.epoch }}.tar.gz"
+    dest: "{{ backup_destination }}/pve_{{ inventory_hostname }}_{{ ansible_date_time.date }}.tar.gz"
+    flat: true
+
+- name: Remove remote backup file
+  ansible.builtin.file:
+    path: "/tmp/pve_{{ inventory_hostname }}_{{ ansible_date_time.epoch }}.tar.gz"
+    state: absent
+  become: true
+
+- name: Display backup status
+  debug:
+    msg: "✓ Configuration backed up to {{ backup_destination }}/pve_{{ inventory_hostname }}_{{ ansible_date_time.date }}.tar.gz"

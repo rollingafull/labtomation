@@ -1,0 +1,124 @@
+---
+# Diagnostic playbook to understand why ansible.posix.authorized_key fails on remote hosts
+
+- name: "╔═══ DIAGNOSTIC: Test authorized_key module ═══╗"
+  hosts: localhost
+  connection: local
+  gather_facts: true
+
+  tasks:
+    - name: Display environment info
+      ansible.builtin.debug:
+        msg: |
+          ═══════════════════════════════════════════════════════════════
+          CONTROL NODE DIAGNOSTICS
+          ═══════════════════════════════════════════════════════════════
+          Python: {{ ansible_python_version }}
+          Ansible: {{ ansible_version.full }}
+          Collections path: {{ lookup('config', 'COLLECTIONS_PATHS') }}
+          ═══════════════════════════════════════════════════════════════
+
+    - name: Check ansible.posix collection installation
+      ansible.builtin.command: ansible-galaxy collection list ansible.posix
+      register: collection_list
+      changed_when: false
+
+    - name: Display collection info
+      ansible.builtin.debug:
+        var: collection_list.stdout_lines
+
+    - name: Test ansible.posix.authorized_key on localhost
+      ansible.posix.authorized_key:
+        user: "{{ ansible_user_id }}"
+        key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAITest test@test"
+        state: present
+      check_mode: true
+      register: localhost_test
+
+    - name: Display localhost test result
+      ansible.builtin.debug:
+        msg: "✓ ansible.posix.authorized_key works on localhost"
+
+- name: "╔═══ DIAGNOSTIC: Test on Remote Host ═══╗"
+  hosts: proxmox_nodes
+  gather_facts: true
+
+  tasks:
+    - name: Display remote host info
+      ansible.builtin.debug:
+        msg: |
+          ═══════════════════════════════════════════════════════════════
+          REMOTE HOST DIAGNOSTICS
+          ═══════════════════════════════════════════════════════════════
+          Host: {{ inventory_hostname }}
+          IP: {{ ansible_host }}
+          OS: {{ ansible_distribution }} {{ ansible_distribution_version }}
+          Python: {{ ansible_python_version }}
+          ═══════════════════════════════════════════════════════════════
+
+    - name: Check Python on remote host
+      ansible.builtin.command: which python3
+      register: remote_python
+      changed_when: false
+
+    - name: Display remote Python
+      ansible.builtin.debug:
+        var: remote_python.stdout
+
+    - name: Test with verbose module debug
+      ansible.posix.authorized_key:
+        user: root
+        key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAITest test@test"
+        state: present
+      check_mode: true
+      register: remote_test
+      ignore_errors: true
+
+    - name: Display remote test result
+      ansible.builtin.debug:
+        msg: |
+          {% if remote_test is failed %}
+          ✗ ansible.posix.authorized_key FAILED on remote host
+          Error: {{ remote_test.msg | default('Unknown error') }}
+          {% else %}
+          ✓ ansible.posix.authorized_key works on remote host
+          {% endif %}
+
+    - name: Check if Python module 'pwd' is available
+      ansible.builtin.shell: python3 -c "import pwd; print('pwd module OK')"
+      register: pwd_check
+      changed_when: false
+      ignore_errors: true
+
+    - name: Display pwd module check
+      ansible.builtin.debug:
+        var: pwd_check.stdout
+
+    - name: Check if Python module 'grp' is available
+      ansible.builtin.shell: python3 -c "import grp; print('grp module OK')"
+      register: grp_check
+      changed_when: false
+      ignore_errors: true
+
+    - name: Display grp module check
+      ansible.builtin.debug:
+        var: grp_check.stdout
+
+- name: "╔═══ DIAGNOSTIC: Summary ═══╗"
+  hosts: localhost
+  connection: local
+  gather_facts: false
+
+  tasks:
+    - name: Display diagnostic summary
+      ansible.builtin.debug:
+        msg: |
+          ═══════════════════════════════════════════════════════════════
+          DIAGNOSTIC SUMMARY
+          ═══════════════════════════════════════════════════════════════
+
+          Run this playbook with:
+          ansible-playbook diagnose_authorized_key.yml -vvv
+
+          The -vvv flag will show detailed module execution information
+          ═══════════════════════════════════════════════════════════════

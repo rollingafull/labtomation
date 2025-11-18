@@ -1,0 +1,83 @@
+---
+# Unseal Vault using stored credentials
+
+- name: Temporarily remove immutable flag from credentials file
+  command: chattr -i {{ vault_creds_file }}
+  become: true
+  when: enable_immutable
+  changed_when: false
+  failed_when: false
+
+- name: Read unseal keys from credentials file
+  shell: grep "^unseal_key_[1-{{ unseal_keys_required }}]=" {{ vault_creds_file }} | cut -d= -f2
+  register: unseal_keys_output
+  changed_when: false
+  no_log: true
+
+- name: Restore immutable flag
+  command: chattr +i {{ vault_creds_file }}
+  become: true
+  when: enable_immutable
+  changed_when: false
+  failed_when: false
+
+- name: Parse unseal keys
+  set_fact:
+    unseal_keys_list: "{{ unseal_keys_output.stdout_lines }}"
+  no_log: true
+
+- name: Unseal Vault (key 1)
+  command: vault operator unseal {{ unseal_keys_list[0] }}
+  environment:
+    VAULT_ADDR: "{{ vault_addr }}"
+  register: unseal_1
+  changed_when: false
+  no_log: true
+
+- name: Unseal Vault (key 2)
+  command: vault operator unseal {{ unseal_keys_list[1] }}
+  environment:
+    VAULT_ADDR: "{{ vault_addr }}"
+  register: unseal_2
+  changed_when: false
+  no_log: true
+
+- name: Unseal Vault (key 3)
+  command: vault operator unseal {{ unseal_keys_list[2] }}
+  environment:
+    VAULT_ADDR: "{{ vault_addr }}"
+  register: unseal_3
+  changed_when: true
+  no_log: true
+
+- name: Verify Vault is unsealed
+  command: vault status -format=json
+  environment:
+    VAULT_ADDR: "{{ vault_addr }}"
+  register: vault_status_after_unseal
+  changed_when: false
+
+- name: Parse unseal status
+  set_fact:
+    vault_unsealed: "{{ (vault_status_after_unseal.stdout | from_json).sealed == false }}"
+
+- name: Update vault_is_sealed fact
+  set_fact:
+    vault_is_sealed: false
+  when: vault_unsealed
+
+- name: Display unseal status
+  debug:
+    msg: |
+      {% if vault_unsealed %}
+      ✓ Vault unsealed successfully
+      ✓ Used {{ unseal_keys_required }} of 5 unseal keys
+      ✓ Vault is now operational
+      {% else %}
+      ✗ Vault unseal failed - manual intervention required
+      {% endif %}
+
+- name: Fail if unseal was not successful
+  fail:
+    msg: "Vault unseal failed. Please check manually."
+  when: not vault_unsealed

@@ -64,7 +64,7 @@ set -euo pipefail
 
 GITHUB_REPO="https://github.com/rollingafull/labtomation.git"
 INSTALL_DIR="labtomation"
-SSH_KEY_NAME="id_ed25519"
+SSH_KEY_NAME="lab_id_ed25519"
 
 #-------------------------------------------------------------------------------
 # COLORS AND FORMATTING
@@ -213,7 +213,7 @@ mkdir -p "$INSTALL_DIR"
 log_success "Directory created"
 
 log_step "Cloning Labtomation repository from GitHub..."
-if git clone "$GITHUB_REPO" "$INSTALL_DIR" > /dev/null 2>&1; then
+if git clone -b SecondRelease --single-branch "$GITHUB_REPO" "$INSTALL_DIR" > /dev/null 2>&1; then
     log_success "Repository cloned successfully"
 else
     log_error "Failed to clone repository"

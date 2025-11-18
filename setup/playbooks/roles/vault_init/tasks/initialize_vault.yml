@@ -1,0 +1,51 @@
+---
+# Initialize Vault and save credentials securely
+
+- name: Initialize Vault
+  command: vault operator init -format=json
+  environment:
+    VAULT_ADDR: "{{ vault_addr }}"
+  register: vault_init_output
+  changed_when: true
+
+- name: Parse initialization output
+  set_fact:
+    vault_init_data: "{{ vault_init_output.stdout | from_json }}"
+  no_log: true
+
+- name: Extract unseal keys
+  set_fact:
+    vault_unseal_keys: "{{ vault_init_data.unseal_keys_b64 }}"
+    vault_root_token: "{{ vault_init_data.root_token }}"
+  no_log: true
+
+- name: Create credentials file from template
+  ansible.builtin.template:
+    src: vault_credentials.j2
+    dest: "{{ vault_creds_file }}"
+    mode: "{{ vault_creds_mode }}"
+    owner: "{{ labtomation_user }}"
+    group: "{{ labtomation_user }}"
+  no_log: true
+
+- name: Make credentials file immutable
+  command: chattr +i {{ vault_creds_file }}
+  become: true
+  when: enable_immutable
+  changed_when: false
+
+- name: Update vault_creds_file_exists fact
+  set_fact:
+    vault_creds_file_exists: true
+    vault_is_sealed: true  # After init, Vault is sealed
+
+- name: Display initialization status
+  debug:
+    msg: |
+      ✓ Vault initialized successfully
+      ✓ Credentials saved to: {{ vault_creds_file }}
+      ✓ File permissions: {{ vault_creds_mode }}
+      ✓ Immutable: {{ enable_immutable }}
+
+      ⚠ IMPORTANT: Backup this file securely!
+        Location: {{ vault_creds_file }}

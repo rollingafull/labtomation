@@ -1,0 +1,42 @@
+---
+# Create Vault environment file for easy access
+
+- name: Temporarily remove immutable flag from credentials file
+  command: chattr -i {{ vault_creds_file }}
+  become: true
+  when: enable_immutable
+  changed_when: false
+  failed_when: false
+
+- name: Read root token from credentials file
+  shell: grep "^token=" {{ vault_creds_file }} | cut -d= -f2
+  register: root_token_output
+  changed_when: false
+  no_log: true
+
+- name: Restore immutable flag
+  command: chattr +i {{ vault_creds_file }}
+  become: true
+  when: enable_immutable
+  changed_when: false
+  failed_when: false
+
+- name: Create Vault environment file
+  ansible.builtin.template:
+    src: vault_env.j2
+    dest: "{{ vault_env_file }}"
+    mode: "{{ vault_env_mode }}"
+    owner: "{{ labtomation_user }}"
+    group: "{{ labtomation_user }}"
+  vars:
+    vault_root_token: "{{ root_token_output.stdout }}"
+  no_log: true
+
+- name: Display environment file status
+  debug:
+    msg: |
+      ✓ Vault environment file created: {{ vault_env_file }}
+      ✓ Permissions: {{ vault_env_mode }}
+
+      To use Vault, source this file:
+        source {{ vault_env_file }}

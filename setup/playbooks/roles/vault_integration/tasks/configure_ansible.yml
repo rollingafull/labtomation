@@ -1,0 +1,30 @@
+---
+# Configure Ansible for Vault integration
+
+- name: Create ansible.cfg from template
+  ansible.builtin.template:
+    src: ansible.cfg.j2
+    dest: /opt/labtomation/playbooks/ansible.cfg
+    mode: '0644'
+  become: true
+
+- name: Create group_vars directory
+  ansible.builtin.file:
+    path: /opt/labtomation/playbooks/group_vars
+    state: directory
+    mode: '0755'
+  become: true
+
+- name: Create all.yml with Vault configuration
+  ansible.builtin.template:
+    src: all.yml.j2
+    dest: /opt/labtomation/playbooks/group_vars/all.yml
+    mode: '0644'
+  become: true
+
+- name: Display Ansible configuration status
+  debug:
+    msg: |
+      ✓ Ansible configured for Vault integration:
+        - /opt/labtomation/playbooks/ansible.cfg
+        - /opt/labtomation/playbooks/group_vars/all.yml

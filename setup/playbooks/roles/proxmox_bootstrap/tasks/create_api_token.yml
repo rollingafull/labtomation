@@ -1,0 +1,48 @@
+---
+# Generate Proxmox API token
+
+- name: Check if API token already exists
+  ansible.builtin.command: "pveum user token list {{ proxmox_api_user }}"
+  register: token_list
+  failed_when: false
+  changed_when: false
+
+- name: Parse token list
+  ansible.builtin.set_fact:
+    api_token_exists: "{{ proxmox_api_token_name in token_list.stdout if token_list.rc == 0 else false }}"
+
+- name: Remove existing token if present
+  ansible.builtin.command: "pveum user token remove {{ proxmox_api_user }} {{ proxmox_api_token_name }}"
+  when: api_token_exists
+  register: token_removed
+
+- name: Generate new API token
+  ansible.builtin.command: >
+    pveum user token add {{ proxmox_api_user }} {{ proxmox_api_token_name }}
+    --privsep 0
+  register: token_output
+
+- name: Display raw token output for debugging
+  ansible.builtin.debug:
+    var: token_output.stdout
+  when: lookup('env', 'DEBUG') == '1'
+
+- name: Extract token secret from table output
+  ansible.builtin.set_fact:
+    api_token_full: "{{ token_output.stdout | regex_search('│ value\\s+│ ([a-f0-9-]+)', '\\1') | first }}"
+
+- name: Split token into ID and secret
+  ansible.builtin.set_fact:
+    api_token_id: "{{ proxmox_api_user }}!{{ proxmox_api_token_name }}"
+    api_token_secret: "{{ api_token_full }}"
+
+- name: Display token creation status
+  ansible.builtin.debug:
+    msg: "✓ API token generated successfully"
+
+- name: Warning about token
+  ansible.builtin.debug:
+    msg: |
+      ⚠ IMPORTANT: API token will be saved to Vault
+      Token ID: {{ api_token_id }}
+      (Token secret is hidden for security)

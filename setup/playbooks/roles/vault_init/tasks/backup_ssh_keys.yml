@@ -1,0 +1,143 @@
+---
+# Move SSH keys to secure directory with immutable flag
+
+- name: Check if lab SSH key exists in legacy location
+  ansible.builtin.stat:
+    path: "{{ lab_ssh_key_legacy }}"
+  register: lab_key_source_stat
+
+- name: Check if lab SSH key already exists in security dir
+  ansible.builtin.stat:
+    path: "{{ security_dir }}/.lab_id_ed25519"
+  register: lab_key_security_stat
+
+- name: Check if pve SSH key exists in legacy location
+  ansible.builtin.stat:
+    path: "{{ pve_ssh_key_legacy }}"
+  register: pve_key_source_stat
+
+- name: Check if pve SSH key already exists in security dir
+  ansible.builtin.stat:
+    path: "{{ security_dir }}/.pve_id_ed25519"
+  register: pve_key_security_stat
+
+- name: Move lab SSH private key to security directory
+  ansible.builtin.copy:
+    src: "{{ lab_ssh_key_legacy }}"
+    dest: "{{ security_dir }}/.lab_id_ed25519"
+    mode: "{{ vault_creds_mode }}"
+    owner: "{{ labtomation_user }}"
+    group: "{{ labtomation_user }}"
+    remote_src: true
+  when:
+    - lab_key_source_stat.stat.exists
+    - not lab_key_security_stat.stat.exists
+
+- name: Move lab SSH public key to security directory
+  ansible.builtin.copy:
+    src: "{{ lab_ssh_key_legacy }}.pub"
+    dest: "{{ security_dir }}/.lab_id_ed25519.pub"
+    mode: "{{ vault_creds_mode }}"
+    owner: "{{ labtomation_user }}"
+    group: "{{ labtomation_user }}"
+    remote_src: true
+  when:
+    - lab_key_source_stat.stat.exists
+    - not lab_key_security_stat.stat.exists
+
+- name: Move pve SSH private key to security directory
+  ansible.builtin.copy:
+    src: "{{ pve_ssh_key_legacy }}"
+    dest: "{{ security_dir }}/.pve_id_ed25519"
+    mode: "{{ vault_creds_mode }}"
+    owner: "{{ labtomation_user }}"
+    group: "{{ labtomation_user }}"
+    remote_src: true
+  when:
+    - pve_key_source_stat.stat.exists
+    - not pve_key_security_stat.stat.exists
+  ignore_errors: yes  # pve key might not exist yet during initial setup
+
+- name: Move pve SSH public key to security directory
+  ansible.builtin.copy:
+    src: "{{ pve_ssh_key_legacy }}.pub"
+    dest: "{{ security_dir }}/.pve_id_ed25519.pub"
+    mode: "{{ vault_creds_mode }}"
+    owner: "{{ labtomation_user }}"
+    group: "{{ labtomation_user }}"
+    remote_src: true
+  when:
+    - pve_key_source_stat.stat.exists
+    - not pve_key_security_stat.stat.exists
+  ignore_errors: true
+
+- name: Check which SSH key backups exist
+  ansible.builtin.stat:
+    path: "{{ item }}"
+  loop:
+    - "{{ security_dir }}/.lab_id_ed25519"
+    - "{{ security_dir }}/.lab_id_ed25519.pub"
+    - "{{ security_dir }}/.pve_id_ed25519"
+    - "{{ security_dir }}/.pve_id_ed25519.pub"
+  register: ssh_backup_files
+
+- name: Make SSH key backups immutable
+  command: chattr +i {{ item.item }}
+  loop: "{{ ssh_backup_files.results }}"
+  loop_control:
+    label: "{{ item.item }}"
+  become: true
+  when:
+    - enable_immutable
+    - item.stat.exists
+  changed_when: false
+
+- name: Delete original lab SSH private key from setup directory
+  ansible.builtin.file:
+    path: "{{ lab_ssh_key_legacy }}"
+    state: absent
+  become: true
+  when:
+    - lab_key_source_stat.stat.exists
+    - lab_key_security_stat.stat.exists or lab_key_source_stat.stat.exists
+
+- name: Delete original lab SSH public key from setup directory
+  ansible.builtin.file:
+    path: "{{ lab_ssh_key_legacy }}.pub"
+    state: absent
+  become: true
+  when:
+    - lab_key_source_stat.stat.exists
+    - lab_key_security_stat.stat.exists or lab_key_source_stat.stat.exists
+
+- name: Delete original pve SSH private key from setup directory
+  ansible.builtin.file:
+    path: "{{ pve_ssh_key_legacy }}"
+    state: absent
+  become: true
+  when:
+    - pve_key_source_stat.stat.exists
+    - pve_key_security_stat.stat.exists or pve_key_source_stat.stat.exists
+  ignore_errors: true
+
+- name: Delete original pve SSH public key from setup directory
+  ansible.builtin.file:
+    path: "{{ pve_ssh_key_legacy }}.pub"
+    state: absent
+  become: true
+  when:
+    - pve_key_source_stat.stat.exists
+    - pve_key_security_stat.stat.exists or pve_key_source_stat.stat.exists
+  ignore_errors: true
+
+- name: Display SSH backup status
+  debug:
+    msg: |
+      ✓ SSH keys moved to {{ security_dir }}
+      {% if lab_key_security_stat.stat.exists %}
+      ✓ Lab key: .lab_id_ed25519 ({{ vault_creds_mode }}, immutable)
+      {% endif %}
+      {% if pve_key_security_stat.stat.exists %}
+      ✓ PVE key: .pve_id_ed25519 ({{ vault_creds_mode }}, immutable)
+      {% endif %}
+      ✓ Original keys deleted from {{ lab_ssh_key_legacy | dirname }}

@@ -1,0 +1,35 @@
+---
+# Create Ansible policy for Proxmox management
+
+- name: Create policy file from template
+  ansible.builtin.template:
+    src: ansible-proxmox-policy.hcl.j2
+    dest: "/tmp/{{ vault_approle_policy_name }}.hcl"
+    mode: '0600'
+
+- name: Write policy to Vault
+  command: "vault policy write {{ vault_approle_policy_name }} /tmp/{{ vault_approle_policy_name }}.hcl"
+  environment:
+    VAULT_ADDR: "{{ vault_addr }}"
+    VAULT_TOKEN: "{{ vault_root_token }}"
+  register: policy_written
+  changed_when: "'Success!' in policy_written.stdout or policy_written.rc == 0"
+  no_log: true
+
+- name: Remove temporary policy file
+  ansible.builtin.file:
+    path: "/tmp/{{ vault_approle_policy_name }}.hcl"
+    state: absent
+
+- name: Verify policy was created
+  command: "vault policy read {{ vault_approle_policy_name }}"
+  environment:
+    VAULT_ADDR: "{{ vault_addr }}"
+    VAULT_TOKEN: "{{ vault_root_token }}"
+  register: policy_read
+  changed_when: false
+  no_log: true
+
+- name: Display policy status
+  debug:
+    msg: "✓ Policy '{{ vault_approle_policy_name }}' created successfully"

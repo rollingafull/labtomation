@@ -1,0 +1,91 @@
+---
+# Validate a single node
+
+- name: Get hostname from {{ node_ip }}
+  ansible.builtin.shell: |
+    sshpass -p "{{ temp_root_password }}" \
+    ssh {{ discovery_ssh_options }} root@{{ node_ip }} \
+    'hostname'
+  register: node_hostname_result
+  failed_when: false
+  changed_when: false
+  no_log: true
+
+- name: Check if node is Proxmox
+  ansible.builtin.shell: |
+    sshpass -p "{{ temp_root_password }}" \
+    ssh {{ discovery_ssh_options }} root@{{ node_ip }} \
+    '[ -d /etc/pve ] && echo "true" || echo "false"'
+  register: is_proxmox
+  failed_when: false
+  changed_when: false
+  no_log: true
+  when: node_hostname_result.rc == 0
+
+- name: Get Proxmox version
+  ansible.builtin.shell: |
+    sshpass -p "{{ temp_root_password }}" \
+    ssh {{ discovery_ssh_options }} root@{{ node_ip }} \
+    'pveversion | head -n1'
+  register: pve_version
+  failed_when: false
+  changed_when: false
+  no_log: true
+  when:
+    - node_hostname_result.rc == 0
+    - is_proxmox.stdout == "true"
+
+- name: Get cluster status
+  ansible.builtin.shell: |
+    sshpass -p "{{ temp_root_password }}" \
+    ssh {{ discovery_ssh_options }} root@{{ node_ip }} \
+    'pvecm status 2>&1'
+  register: cluster_status
+  failed_when: false
+  changed_when: false
+  no_log: true
+  when:
+    - node_hostname_result.rc == 0
+    - is_proxmox.stdout == "true"
+
+- name: Debug cluster status output
+  ansible.builtin.debug:
+    msg: |
+      Node {{ node_ip }} cluster status:
+      Return code: {{ cluster_status.rc }}
+      Output: {{ cluster_status.stdout }}
+  when:
+    - node_hostname_result.rc == 0
+    - is_proxmox.stdout == "true"
+    - lookup('env', 'DEBUG') == '1'
+
+- name: Parse cluster info
+  ansible.builtin.set_fact:
+    node_role: "{% if cluster_status is not defined or cluster_status.rc != 0 or 'cluster not ready' in cluster_status.stdout | lower %}standalone{% elif 'Quorum information' in cluster_status.stdout %}member{% else %}unknown{% endif %}"
+    cluster_name: "{% if cluster_status is defined and 'Cluster name:' in cluster_status.stdout %}{{ cluster_status.stdout | regex_search('Cluster name:\\s*(.+)', '\\1') | first | trim }}{% else %}none{% endif %}"
+  when:
+    - node_hostname_result.rc == 0
+    - is_proxmox.stdout == "true"
+
+- name: Add validated node to list
+  ansible.builtin.set_fact:
+    proxmox_nodes_discovered: "{{ proxmox_nodes_discovered + [node_info] }}"
+  vars:
+    node_info:
+      hostname: "{{ node_hostname_result.stdout | trim }}"
+      ip: "{{ node_ip }}"
+      version: "{{ pve_version.stdout | trim if pve_version.stdout is defined else 'unknown' }}"
+      role: "{{ node_role if node_role is defined else 'unknown' }}"
+      cluster_name: "{{ cluster_name if cluster_name is defined else 'none' }}"
+  when:
+    - node_hostname_result.rc == 0
+    - is_proxmox.stdout == "true"
+
+- name: Display node validation result
+  ansible.builtin.debug:
+    msg: >-
+      {% if node_hostname_result.rc == 0 and is_proxmox.stdout == "true" %}
+      ✓ {{ node_ip }} - {{ node_hostname_result.stdout | trim }} ({{ pve_version.stdout | trim }})
+      {% else %}
+      ✗ {{ node_ip }} - Not a valid Proxmox node or authentication failed
+      {% endif %}

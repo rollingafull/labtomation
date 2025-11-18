@@ -1,0 +1,28 @@
+---
+# Validate that discovered hosts are actually Proxmox nodes
+
+- name: Initialize nodes list
+  ansible.builtin.set_fact:
+    proxmox_nodes_discovered: []
+
+- name: Validate each discovered IP
+  ansible.builtin.include_tasks: validate_single_node.yml
+  loop: "{{ discovered_ips }}"
+  loop_control:
+    loop_var: node_ip
+
+- name: Display validation results
+  ansible.builtin.debug:
+    msg: "✓ Validated {{ proxmox_nodes_discovered | length }} Proxmox node(s)"
+
+- name: Fail if no valid Proxmox nodes
+  ansible.builtin.fail:
+    msg: |
+      No valid Proxmox nodes found!
+
+      Discovered IPs had port {{ proxmox_scan_port }} open but failed validation.
+      This could mean:
+      - SSH authentication failed (check root password)
+      - Hosts are not Proxmox VE servers
+      - /etc/pve directory is not accessible
+  when: proxmox_nodes_discovered | length == 0

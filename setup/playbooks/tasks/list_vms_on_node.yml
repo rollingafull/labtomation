@@ -1,0 +1,35 @@
+---
+# Helper task to list VMs on a specific node
+
+- name: Get node credentials from Vault
+  ansible.builtin.command: "vault kv get -format=json secret/proxmox/nodes/{{ node_hostname }}"
+  environment:
+    VAULT_ADDR: "{{ vault_addr }}"
+    VAULT_TOKEN: "{{ vault_token_result.stdout }}"
+  register: node_vault_data
+  changed_when: false
+  no_log: true
+
+- name: Parse node data
+  ansible.builtin.set_fact:
+    current_node_data: "{{ (node_vault_data.stdout | from_json).data.data }}"
+  no_log: true
+
+- name: Get VMs via API
+  ansible.builtin.uri:
+    url: "https://{{ current_node_data.ip_address }}:8006/api2/json/nodes/{{ node_hostname }}/qemu"
+    method: GET
+    headers:
+      Authorization: "PVEAPIToken={{ current_node_data.api_token_id }}={{ current_node_data.api_token_secret }}"
+    validate_certs: true
+  register: vms_list
+  no_log: true
+
+- name: Display VMs on node
+  ansible.builtin.debug:
+    msg: |
+      Node: {{ node_hostname }} ({{ current_node_data.ip_address }})
+      VMs: {{ vms_list.json.data | length }}
+      {% for vm in vms_list.json.data %}
+      - {{ vm.name }} (VMID: {{ vm.vmid }}, Status: {{ vm.status }})
+      {% endfor %}

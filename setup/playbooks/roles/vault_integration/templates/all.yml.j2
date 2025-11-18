@@ -1,0 +1,27 @@
+---
+# Global variables for all hosts
+# Generated: {{ ansible_date_time.iso8601 }}
+
+# Vault configuration
+vault_addr: "{{ vault_addr }}"
+vault_role_id: "{{ '{{' }} lookup('env', 'VAULT_ROLE_ID') {{ '}}' }}"
+vault_secret_id: "{{ '{{' }} lookup('env', 'VAULT_SECRET_ID') {{ '}}' }}"
+
+# Get Vault token using AppRole
+vault_token: "{{ '{{' }} lookup('community.hashi_vault.hashi_vault', 'secret=auth/approle/login:token role_id={{ vault_role_id }} secret_id={{ vault_secret_id }} url={{ vault_addr }}') {{ '}}' }}"
+
+# Labtomation configuration
+labtomation_user: labtomation
+
+# SSH keys configuration (stored in secure directory)
+# pve_id_ed25519: For Proxmox VE node access
+pve_ssh_key: /home/labtomation/.security/.pve_id_ed25519
+pve_ssh_key_pub: /home/labtomation/.security/.pve_id_ed25519.pub
+
+# lab_id_ed25519: For lab VMs/LXC created with Terraform
+lab_ssh_key: /home/labtomation/.security/.lab_id_ed25519
+lab_ssh_key_pub: /home/labtomation/.security/.lab_id_ed25519.pub
+
+# Proxmox configuration
+proxmox_api_user: labtomation@pve
+proxmox_api_token_name: labtomation-token

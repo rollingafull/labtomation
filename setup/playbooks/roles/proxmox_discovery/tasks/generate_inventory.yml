@@ -1,0 +1,20 @@
+---
+# Generate Ansible inventory file
+
+- name: Create inventory directory
+  ansible.builtin.file:
+    path: "{{ inventory_output_dir }}"
+    state: directory
+    mode: '0755'
+  become: true
+
+- name: Generate inventory from template
+  ansible.builtin.template:
+    src: proxmox_inventory.yml.j2
+    dest: "{{ inventory_output_dir }}/{{ inventory_file_name }}"
+    mode: '0644'
+  become: true
+
+- name: Display inventory location
+  ansible.builtin.debug:
+    msg: "✓ Inventory file generated: {{ inventory_output_dir }}/{{ inventory_file_name }}"

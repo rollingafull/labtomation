@@ -1,0 +1,17 @@
+# Vault Policy for Ansible Proxmox Automation
+# Generated: {{ ansible_date_time.iso8601 }}
+
+# Allow full access to Proxmox secrets
+path "{{ vault_secret_path }}/data/proxmox/*" {
+  capabilities = ["create", "read", "update", "delete", "list"]
+}
+
+# Allow access to Proxmox metadata
+path "{{ vault_secret_path }}/metadata/proxmox/*" {
+  capabilities = ["read", "list", "delete"]
+}
+
+# Allow listing secrets
+path "{{ vault_secret_path }}/metadata/proxmox" {
+  capabilities = ["list"]
+}

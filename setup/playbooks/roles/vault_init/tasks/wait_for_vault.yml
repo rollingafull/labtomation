@@ -1,0 +1,25 @@
+---
+# Wait for Vault service to be ready
+
+- name: Wait for Vault port to be available
+  wait_for:
+    host: 127.0.0.1
+    port: 8200
+    delay: 2
+    timeout: "{{ vault_max_init_wait }}"
+    state: started
+
+- name: Wait for Vault API to respond
+  uri:
+    url: "{{ vault_addr }}/v1/sys/health"
+    method: GET
+    validate_certs: false
+    status_code: [200, 429, 472, 473, 501, 503]  # Various Vault states
+  register: vault_health
+  until: vault_health is succeeded
+  retries: 10
+  delay: 3
+
+- name: Display Vault readiness
+  debug:
+    msg: "✓ Vault service is ready and responding"

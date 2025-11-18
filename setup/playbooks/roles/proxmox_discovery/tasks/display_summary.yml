@@ -1,0 +1,30 @@
+---
+# Display discovery summary
+
+- name: Build summary table
+  ansible.builtin.set_fact:
+    summary_lines: |
+
+      ═══════════════════════════════════════════════════════════════
+           Proxmox Discovery Summary
+      ═══════════════════════════════════════════════════════════════
+
+      Found {{ proxmox_nodes_discovered | length }} Proxmox node(s):
+
+      {% for node in proxmox_nodes_discovered %}
+      • {{ node.hostname }} ({{ node.ip }})
+        Version: {{ node.version }}
+        Role: {{ node.role }}
+      {% if node.cluster_name != 'none' %}
+        Cluster: {{ node.cluster_name }}
+      {% endif %}
+
+      {% endfor %}
+      Inventory saved to:
+      {{ inventory_output_dir }}/{{ inventory_file_name }}
+
+      ═══════════════════════════════════════════════════════════════
+
+- name: Display summary
+  ansible.builtin.debug:
+    msg: "{{ summary_lines }}"

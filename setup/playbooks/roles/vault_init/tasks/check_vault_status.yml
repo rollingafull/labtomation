@@ -1,0 +1,56 @@
+---
+# Check Vault initialization and seal status
+
+- name: Check Vault status
+  command: vault status -format=json
+  environment:
+    VAULT_ADDR: "{{ vault_addr }}"
+  register: vault_status_output
+  changed_when: false
+  failed_when: false
+
+- name: Parse Vault status
+  set_fact:
+    vault_status: "{{ vault_status_output.stdout | from_json }}"
+  when: vault_status_output.rc == 0
+
+- name: Set Vault state facts
+  set_fact:
+    vault_is_initialized: "{{ vault_status.initialized | default(false) }}"
+    vault_is_sealed: "{{ vault_status.sealed | default(true) }}"
+  when: vault_status_output.rc == 0
+
+- name: Handle uninitialized Vault
+  set_fact:
+    vault_is_initialized: false
+    vault_is_sealed: true
+  when: vault_status_output.rc != 0
+
+- name: Check if credentials file exists
+  ansible.builtin.stat:
+    path: "{{ vault_creds_file }}"
+  register: vault_creds_stat
+
+- name: Set credentials file fact
+  set_fact:
+    vault_creds_file_exists: "{{ vault_creds_stat.stat.exists }}"
+
+- name: Display Vault status
+  debug:
+    msg: |
+      Vault Status:
+      {% if vault_is_initialized %}
+      ✓ Initialized: Yes
+      {% else %}
+      ✗ Initialized: No (will initialize)
+      {% endif %}
+      {% if vault_is_sealed %}
+      ✗ Sealed: Yes (will unseal)
+      {% else %}
+      ✓ Sealed: No (already unsealed)
+      {% endif %}
+      {% if vault_creds_file_exists %}
+      ✓ Credentials file: Exists
+      {% else %}
+      ✗ Credentials file: Not found (will create)
+      {% endif %}

@@ -1,0 +1,31 @@
+---
+# Scan network for Proxmox nodes
+
+- name: Display network range
+  ansible.builtin.debug:
+    msg: "Scanning network range: {{ network_range }}"
+
+- name: Scan for hosts with port {{ proxmox_scan_port }} open
+  ansible.builtin.command: "nmap -p {{ proxmox_scan_port }} --open -oG - {{ network_range }}"
+  register: nmap_scan
+  changed_when: false
+
+- name: Parse nmap results
+  ansible.builtin.set_fact:
+    discovered_ips: "{{ nmap_scan.stdout | regex_findall('Host: ([0-9.]+).*Ports: ' + proxmox_scan_port | string + '/open') }}"
+
+- name: Display discovered IPs
+  ansible.builtin.debug:
+    msg: "Found {{ discovered_ips | length }} potential Proxmox node(s): {{ discovered_ips | join(', ') }}"
+
+- name: Fail if no nodes found
+  ansible.builtin.fail:
+    msg: |
+      No Proxmox nodes found on network {{ network_range }}
+
+      Please verify:
+      - Network range is correct
+      - Proxmox nodes are powered on
+      - Proxmox web UI is accessible on port {{ proxmox_scan_port }}
+      - Firewall is not blocking port {{ proxmox_scan_port }}
+  when: discovered_ips | length == 0

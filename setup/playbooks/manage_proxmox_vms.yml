@@ -1,0 +1,131 @@
+---
+# ===============================================================================
+# Labtomation - Proxmox VM Management Playbook
+# ===============================================================================
+#
+# Description:
+#   Manage Proxmox VMs using API tokens stored in Vault
+#
+# Usage:
+#   # Source Vault credentials
+#   source /opt/labtomation/.env
+#
+#   # Create a VM
+#   ansible-playbook manage_proxmox_vms.yml \
+#     -e "vm_name=web01" \
+#     -e "vm_node=z270x-gaming5" \
+#     -e "vm_cores=2" \
+#     -e "vm_memory=4096" \
+#     -e "vm_disk=32G"
+#
+#   # List VMs on a node
+#   ansible-playbook manage_proxmox_vms.yml --tags list
+#
+# ===============================================================================
+
+- name: Manage Proxmox VMs via API
+  hosts: localhost
+  connection: local
+  gather_facts: true
+
+  vars:
+    # Default VM configuration
+    vm_node: "{{ target_node | default('') }}"
+    vm_name: "{{ vm_name | default('test-vm') }}"
+    vm_cores: "{{ vm_cores | default(2) }}"
+    vm_memory: "{{ vm_memory | default(2048) }}"
+    vm_disk: "{{ vm_disk | default('32G') }}"
+    vm_state: "{{ vm_state | default('present') }}"
+
+  tasks:
+    - name: Fail if no target node specified
+      ansible.builtin.fail:
+        msg: "Please specify target node with -e 'target_node=hostname'"
+      when: vm_node == ''
+
+    - name: Get Vault token from AppRole
+      ansible.builtin.command: >
+        vault write -field=token auth/approle/login
+        role_id="{{ lookup('env', 'VAULT_ROLE_ID') }}"
+        secret_id="{{ lookup('env', 'VAULT_SECRET_ID') }}"
+      environment:
+        VAULT_ADDR: "{{ vault_addr }}"
+      register: vault_token_result
+      changed_when: false
+      no_log: true
+
+    - name: Set Vault token
+      ansible.builtin.set_fact:
+        vault_token: "{{ vault_token_result.stdout }}"
+      no_log: true
+
+    - name: Get API credentials from Vault
+      ansible.builtin.command: "vault kv get -format=json secret/proxmox/nodes/{{ vm_node }}"
+      environment:
+        VAULT_ADDR: "{{ vault_addr }}"
+        VAULT_TOKEN: "{{ vault_token }}"
+      register: vault_data
+      changed_when: false
+      no_log: true
+
+    - name: Parse Vault data
+      ansible.builtin.set_fact:
+        node_data: "{{ (vault_data.stdout | from_json).data.data }}"
+      no_log: true
+
+    - name: Display VM operation
+      ansible.builtin.debug:
+        msg: |
+          VM Operation:
+            Action: {{ vm_state }}
+            Node: {{ vm_node }} ({{ node_data.ip_address }})
+            Name: {{ vm_name }}
+            Cores: {{ vm_cores }}
+            Memory: {{ vm_memory }}MB
+            Disk: {{ vm_disk }}
+
+    - name: Manage VM via Proxmox API
+      community.general.proxmox_kvm:
+        api_host: "{{ node_data.ip_address }}"
+        api_user: "{{ proxmox_api_user }}"
+        api_token_id: "{{ node_data.api_token_id }}"
+        api_token_secret: "{{ node_data.api_token_secret }}"
+        node: "{{ vm_node }}"
+        name: "{{ vm_name }}"
+        cores: "{{ vm_cores }}"
+        memory: "{{ vm_memory }}"
+        state: "{{ vm_state }}"
+      register: vm_result
+      no_log: true
+
+    - name: Display result
+      ansible.builtin.debug:
+        msg: "✓ VM {{ vm_name }} {{ vm_state }} on {{ vm_node }}"
+
+- name: List VMs on nodes
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  tags: [never, list]
+
+  tasks:
+    - name: Get all node hostnames from inventory
+      ansible.builtin.set_fact:
+        proxmox_hostnames: "{{ groups['proxmox_nodes'] | default([]) }}"
+
+    - name: Get Vault token
+      ansible.builtin.command: >
+        vault write -field=token auth/approle/login
+        role_id="{{ lookup('env', 'VAULT_ROLE_ID') }}"
+        secret_id="{{ lookup('env', 'VAULT_SECRET_ID') }}"
+      environment:
+        VAULT_ADDR: "{{ vault_addr }}"
+      register: vault_token_result
+      changed_when: false
+      no_log: true
+
+    - name: List VMs on each node
+      ansible.builtin.include_tasks: tasks/list_vms_on_node.yml
+      loop: "{{ proxmox_hostnames }}"
+      loop_control:
+        loop_var: node_hostname

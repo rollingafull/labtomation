@@ -1,0 +1,29 @@
+---
+# Create labtomation OS user
+
+- name: Check if labtomation user already exists
+  ansible.builtin.command: id {{ labtomation_user }}
+  register: user_check
+  failed_when: false
+  changed_when: false
+
+- name: Create labtomation group
+  ansible.builtin.group:
+    name: "{{ labtomation_group }}"
+    state: present
+  when: user_check.rc != 0
+
+- name: Create labtomation user
+  ansible.builtin.user:
+    name: "{{ labtomation_user }}"
+    group: "{{ labtomation_group }}"
+    home: "{{ labtomation_home }}"
+    shell: "{{ labtomation_shell }}"
+    comment: "Labtomation Automation User"
+    create_home: true
+    state: present
+  when: user_check.rc != 0
+
+- name: Display user creation status
+  ansible.builtin.debug:
+    msg: "{{ '✓ User ' + labtomation_user + ' created' if user_check.rc != 0 else '✓ User ' + labtomation_user + ' already exists' }}"
