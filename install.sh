@@ -63,7 +63,7 @@ set -euo pipefail
 #-------------------------------------------------------------------------------
 
 GITHUB_REPO="https://github.com/rollingafull/labtomation.git"
-INSTALL_DIR="labtomation"
+INSTALL_DIR="./labtomation"
 SSH_KEY_NAME="lab_id_ed25519"
 
 #-------------------------------------------------------------------------------
