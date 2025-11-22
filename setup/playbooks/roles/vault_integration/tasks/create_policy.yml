@@ -9,25 +9,25 @@
   register: existing_policy
   changed_when: false
   failed_when: false
-  no_log: true
+  no_log: false
 
 - name: Check if existing policy has required permissions
   ansible.builtin.set_fact:
     policy_needs_update: >-
       {{
         existing_policy.rc != 0 or
-        'lookup-self' not in existing_policy.stdout or
-        'renew-self' not in existing_policy.stdout
+        'lookup-self' not in (existing_policy.stdout | default('')) or
+        'renew-self' not in (existing_policy.stdout | default(''))
       }}
 
 - name: Display policy update status
   ansible.builtin.debug:
-    msg: >-
-      {{
-        'Policy exists but needs update (missing token permissions)' if (existing_policy.rc == 0 and policy_needs_update | bool)
-        else 'Policy does not exist, will create' if existing_policy.rc != 0
-        else 'Policy exists with correct permissions'
-      }}
+    msg:
+      - "Policy check result: rc={{ existing_policy.rc }}"
+      - "Has lookup-self: {{ 'lookup-self' in (existing_policy.stdout | default('')) }}"
+      - "Has renew-self: {{ 'renew-self' in (existing_policy.stdout | default('')) }}"
+      - "Needs update: {{ policy_needs_update }}"
+      - "Action: {{ 'Update (missing permissions)' if (existing_policy.rc == 0 and policy_needs_update | bool) else 'Create' if existing_policy.rc != 0 else 'Skip (already correct)' }}"
 
 - name: Create policy file from template
   ansible.builtin.template:
