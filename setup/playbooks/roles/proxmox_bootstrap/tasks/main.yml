@@ -3,16 +3,16 @@
 
 - name: Display bootstrap banner
   ansible.builtin.debug:
-    msg: |
-
-      ═══════════════════════════════════════════════════════════════
-           Bootstrapping Proxmox Node
-      ═══════════════════════════════════════════════════════════════
-
-      Node: {{ inventory_hostname }}
-      IP: {{ ansible_host }}
-
-      ═══════════════════════════════════════════════════════════════
+    msg:
+      - ""
+      - "═══════════════════════════════════════════════════════════════"
+      - "     Bootstrapping Proxmox Node"
+      - "═══════════════════════════════════════════════════════════════"
+      - ""
+      - "Node: {{ inventory_hostname }}"
+      - "IP: {{ ansible_host }}"
+      - ""
+      - "═══════════════════════════════════════════════════════════════"
 
 - name: Verify Ansible collections
   ansible.builtin.include_tasks: verify_collections.yml

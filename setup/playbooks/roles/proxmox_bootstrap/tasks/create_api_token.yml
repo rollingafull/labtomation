@@ -42,7 +42,7 @@
 
 - name: Warning about token
   ansible.builtin.debug:
-    msg: |
-      ⚠ IMPORTANT: API token will be saved to Vault
-      Token ID: {{ api_token_id }}
-      (Token secret is hidden for security)
+    msg:
+      - "⚠ IMPORTANT: API token will be saved to Vault"
+      - "Token ID: {{ api_token_id }}"
+      - "(Token secret is hidden for security)"

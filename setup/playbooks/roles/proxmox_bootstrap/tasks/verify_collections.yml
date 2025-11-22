@@ -11,12 +11,7 @@
 
 - name: Display collection status
   ansible.builtin.debug:
-    msg: |
-      {% if 'ansible.posix' in posix_collection_check.stdout %}
-      ✓ ansible.posix collection is installed
-      {% else %}
-      ⚠ ansible.posix collection not found - will use fallback methods
-      {% endif %}
+    msg: "{% if 'ansible.posix' in posix_collection_check.stdout %}✓ ansible.posix collection is installed{% else %}⚠ ansible.posix collection not found - will use fallback methods{% endif %}"
 
 - name: Set fact for collection availability
   ansible.builtin.set_fact:

@@ -54,11 +54,4 @@
 
 - name: Display SSH key generation status
   ansible.builtin.debug:
-    msg: |
-      {% if pve_key_generated.changed %}
-      ✓ New Proxmox SSH key generated
-      {% elif 'i' in pve_key_immutable_check.stdout %}
-      ✓ Using existing Proxmox SSH key (protected with immutable flag)
-      {% else %}
-      ✓ Using existing Proxmox SSH key
-      {% endif %}
+    msg: "{% if pve_key_generated.changed %}✓ New Proxmox SSH key generated{% elif 'i' in pve_key_immutable_check.stdout %}✓ Using existing Proxmox SSH key (protected with immutable flag){% else %}✓ Using existing Proxmox SSH key{% endif %}"

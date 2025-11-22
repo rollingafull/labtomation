@@ -7,8 +7,8 @@
 
 - name: Display SSH configuration status
   ansible.builtin.debug:
-    msg: |
-      ℹ SSH Configuration:
-        - Root SSH access: ENABLED (password auth)
-        - Labtomation user: ADDED (key-based auth)
-        - SSH config: UNCHANGED (Proxmox default maintained)
+    msg:
+      - "ℹ SSH Configuration:"
+      - "  - Root SSH access: ENABLED (password auth)"
+      - "  - Labtomation user: ADDED (key-based auth)"
+      - "  - SSH config: UNCHANGED (Proxmox default maintained)"

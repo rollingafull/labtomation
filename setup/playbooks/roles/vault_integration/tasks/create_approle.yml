@@ -70,6 +70,9 @@
   ansible.builtin.set_fact:
     vault_role_id: "{{ role_id_output.stdout | trim | replace('\"', '') }}"
     vault_secret_id: "{{ secret_id_output.stdout | trim | replace('\"', '') }}"
+    vault_addr: "{{ vault_addr }}"
+    vault_proxmox_nodes_path: "{{ vault_proxmox_nodes_path }}"
+    cacheable: true
   no_log: true
 
 - name: Display AppRole status

@@ -14,41 +14,17 @@
 
 - name: Set AppRole token
   ansible.builtin.set_fact:
-    vault_integration_approle_token: "{{ vault_integration_approle_login.stdout }}"
+    vault_integration_approle_token: "{{ vault_integration_approle_login.stdout | trim }}"
   no_log: true
 
-- name: Debug AppRole token info (using root token)
-  ansible.builtin.command: vault token lookup {{ vault_integration_approle_token }}
-  environment:
-    VAULT_ADDR: "{{ vault_addr }}"
-    VAULT_TOKEN: "{{ vault_root_token }}"
-  register: vault_integration_token_info
-  changed_when: false
-  no_log: false
-  failed_when: false
-
-- name: Display token policies
-  ansible.builtin.debug:
-    msg: "Token lookup result (rc={{ vault_integration_token_info.rc }}): {{ vault_integration_token_info.stdout if vault_integration_token_info.rc == 0 else vault_integration_token_info.stderr }}" # noqa yaml[line-length]
-
-- name: Test reading with AppRole token
-  ansible.builtin.command: vault token lookup-self
+- name: Test reading with AppRole token (using lookup without args acts as lookup-self)
+  ansible.builtin.command: vault token lookup
   environment:
     VAULT_ADDR: "{{ vault_addr }}"
     VAULT_TOKEN: "{{ vault_integration_approle_token }}"
   register: vault_integration_token_test
   changed_when: false
-  no_log: false
-  failed_when: false
-
-- name: Display token test result if failed
-  ansible.builtin.debug:
-    msg:
-      - "Token lookup-self test result:"
-      - "  RC: {{ vault_integration_token_test.rc }}"
-      - "  STDOUT: {{ vault_integration_token_test.stdout | default('(empty)') }}"
-      - "  STDERR: {{ vault_integration_token_test.stderr | default('(empty)') }}"
-  when: vault_integration_token_test.rc != 0
+  no_log: true
 
 - name: Check if token lookup succeeded
   ansible.builtin.assert:
