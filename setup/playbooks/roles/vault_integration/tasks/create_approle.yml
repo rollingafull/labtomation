@@ -9,7 +9,14 @@
   register: approle_check
   failed_when: false
   changed_when: false
-  no_log: true
+  no_log: false
+
+- name: Debug AppRole check result
+  ansible.builtin.debug:
+    msg:
+      - "AppRole check: rc={{ approle_check.rc }}"
+      - "AppRole exists: {{ approle_check.rc == 0 }}"
+      - "Will delete: {{ approle_check.rc == 0 }}"
 
 - name: Delete existing AppRole (will be recreated with latest policy)
   ansible.builtin.command: "vault delete auth/approle/role/{{ vault_approle_name }}"

@@ -38,15 +38,15 @@
   tasks:
     - name: Display pre-flight banner
       ansible.builtin.debug:
-        msg: |
-
-          ═══════════════════════════════════════════════════════════════
-               PHASE 0: Pre-Flight Checks
-          ═══════════════════════════════════════════════════════════════
-
-          Verifying Ansible collections and Vault status...
-
-          ═══════════════════════════════════════════════════════════════
+        msg:
+          - ""
+          - "═══════════════════════════════════════════════════════════════"
+          - "     PHASE 0: Pre-Flight Checks"
+          - "═══════════════════════════════════════════════════════════════"
+          - ""
+          - "Verifying Ansible collections and Vault status..."
+          - ""
+          - "═══════════════════════════════════════════════════════════════"
 
 
     - name: Check if ansible.posix collection is installed
@@ -67,25 +67,29 @@
       ansible.builtin.debug:
         msg: "✓ Required Ansible collections are available"
 
-    - name: Check Vault status
-      ansible.builtin.command: vault status -format=json
-      environment:
-        VAULT_ADDR: "{{ lookup('env', 'VAULT_ADDR') | default('http://127.0.0.1:8200', true) }}"
+    - name: Check Vault status via HTTP API
+      ansible.builtin.uri:
+        url: "{{ lookup('env', 'VAULT_ADDR') | default('http://127.0.0.1:8200', true) }}/v1/sys/health"
+        method: GET
+        status_code: [200, 429, 472, 473, 501, 503]
+        timeout: 5
       register: vault_preflight_status
       failed_when: false
       changed_when: false
 
     - name: Parse Vault status
       ansible.builtin.set_fact:
-        vault_preflight_json: "{{ vault_preflight_status.stdout | from_json }}"
-      when: vault_preflight_status.rc in [0, 2]
+        vault_preflight_json:
+          initialized: "{{ vault_preflight_status.json.initialized | default(false) }}"
+          sealed: "{{ vault_preflight_status.json.sealed | default(true) }}"
+      when: vault_preflight_status.status is defined and vault_preflight_status.status in [200, 429, 472, 473, 501, 503]
 
     - name: Display Vault pre-flight status
       ansible.builtin.debug:
-        msg: |
-          Vault Pre-Flight Check:
-            Initialized: {{ vault_preflight_json.initialized | default(false) }}
-            Sealed: {{ vault_preflight_json.sealed | default(true) }}
+        msg:
+          - "Vault Pre-Flight Check:"
+          - "  Initialized: {{ vault_preflight_json.initialized | default(false) }}"
+          - "  Sealed: {{ vault_preflight_json.sealed | default(true) }}"
       when: vault_preflight_json is defined
 
     - name: Unseal Vault if needed
@@ -101,9 +105,9 @@
 
         - name: Fail if Vault is sealed but no credentials file
           ansible.builtin.fail:
-            msg: |
-              Vault is sealed but credentials file not found.
-              Please run: ansible-playbook -i inventory/localhost.yml setup_devops_tools.yml --tags vault_init
+            msg:
+              - "Vault is sealed but credentials file not found."
+              - "Please run: ansible-playbook -i inventory/localhost.yml setup_devops_tools.yml --tags vault_init"
           when: not vault_creds_stat.stat.exists
 
         - name: Temporarily remove immutable flag from credentials file
@@ -132,41 +136,53 @@
           no_log: true
 
         - name: Unseal Vault (key 1)
-          ansible.builtin.command: vault operator unseal {{ vault_unseal_keys[0] }}
-          environment:
-            VAULT_ADDR: "{{ lookup('env', 'VAULT_ADDR') | default('http://127.0.0.1:8200', true) }}"
+          ansible.builtin.uri:
+            url: "{{ lookup('env', 'VAULT_ADDR') | default('http://127.0.0.1:8200', true) }}/v1/sys/unseal"
+            method: POST
+            body_format: json
+            body:
+              key: "{{ vault_unseal_keys[0] }}"
+            status_code: 200
           register: unseal_result_1
           changed_when: false
           no_log: true
 
         - name: Unseal Vault (key 2)
-          ansible.builtin.command: vault operator unseal {{ vault_unseal_keys[1] }}
-          environment:
-            VAULT_ADDR: "{{ lookup('env', 'VAULT_ADDR') | default('http://127.0.0.1:8200', true) }}"
+          ansible.builtin.uri:
+            url: "{{ lookup('env', 'VAULT_ADDR') | default('http://127.0.0.1:8200', true) }}/v1/sys/unseal"
+            method: POST
+            body_format: json
+            body:
+              key: "{{ vault_unseal_keys[1] }}"
+            status_code: 200
           register: unseal_result_2
           changed_when: false
           no_log: true
 
         - name: Unseal Vault (key 3)
-          ansible.builtin.command: vault operator unseal {{ vault_unseal_keys[2] }}
-          environment:
-            VAULT_ADDR: "{{ lookup('env', 'VAULT_ADDR') | default('http://127.0.0.1:8200', true) }}"
+          ansible.builtin.uri:
+            url: "{{ lookup('env', 'VAULT_ADDR') | default('http://127.0.0.1:8200', true) }}/v1/sys/unseal"
+            method: POST
+            body_format: json
+            body:
+              key: "{{ vault_unseal_keys[2] }}"
+            status_code: 200
           register: unseal_result_3
-          changed_when: unseal_result_3.rc == 0
+          changed_when: true
           no_log: true
 
         - name: Display unseal status
           ansible.builtin.debug:
-            msg: |
-              ✓ Vault unsealed successfully
-              ✓ Vault is now operational
+            msg:
+              - "✓ Vault unsealed successfully"
+              - "✓ Vault is now operational"
 
     - name: Fail if Vault is not initialized
       ansible.builtin.fail:
-        msg: |
-          Vault is not initialized. Please initialize it first:
-            cd /opt/labtomation/playbooks
-            ansible-playbook -i inventory/localhost.yml setup_devops_tools.yml --tags vault_init
+        msg:
+          - "Vault is not initialized. Please initialize it first:"
+          - "  cd /opt/labtomation/playbooks"
+          - "  ansible-playbook -i inventory/localhost.yml setup_devops_tools.yml --tags vault_init"
       when:
         - vault_preflight_json is defined
         - not vault_preflight_json.initialized | bool
@@ -180,16 +196,16 @@
   tasks:
     - name: Display phase banner
       ansible.builtin.debug:
-        msg: |
-
-          ═══════════════════════════════════════════════════════════════
-               PHASE 1: Vault Integration
-          ═══════════════════════════════════════════════════════════════
-
-          Setting up HashiCorp Vault with AppRole authentication
-          This enables secure secrets management for Ansible
-
-          ═══════════════════════════════════════════════════════════════
+        msg:
+          - ""
+          - "═══════════════════════════════════════════════════════════════"
+          - "     PHASE 1: Vault Integration"
+          - "═══════════════════════════════════════════════════════════════"
+          - ""
+          - "Setting up HashiCorp Vault with AppRole authentication"
+          - "This enables secure secrets management for Ansible"
+          - ""
+          - "═══════════════════════════════════════════════════════════════"
 
 
   roles:
@@ -253,22 +269,22 @@
 
     - name: Display phase banner
       ansible.builtin.debug:
-        msg: |
-
-          ═══════════════════════════════════════════════════════════════
-               PHASE 2: Proxmox Node Discovery
-          ═══════════════════════════════════════════════════════════════
-
-          Scanning network: {{ network_range }}
-          Looking for Proxmox VE nodes on port 8006
-
-          ═══════════════════════════════════════════════════════════════
+        msg:
+          - ""
+          - "═══════════════════════════════════════════════════════════════"
+          - "     PHASE 2: Proxmox Node Discovery"
+          - "═══════════════════════════════════════════════════════════════"
+          - ""
+          - "Scanning network: {{ network_range }}"
+          - "Looking for Proxmox VE nodes on port 8006"
+          - ""
+          - "═══════════════════════════════════════════════════════════════"
 
 
   roles:
     - role: proxmox_discovery
       vars:
-        inventory_output_dir: "{{ playbook_dir }}/inventory"
+        proxmox_discovery_inventory_output_dir: "{{ playbook_dir }}/inventory"
 
 
 - name: "╔═══ PHASE 3: Add Discovered Nodes to Inventory ═══╗"
@@ -280,7 +296,7 @@
   tasks:
     - name: Read generated inventory file
       ansible.builtin.slurp:
-        src: "{{ inventory_output_dir | default(playbook_dir + '/inventory') }}/proxmox_nodes.yml"
+        src: "{{ proxmox_discovery_inventory_output_dir | default(playbook_dir + '/inventory') }}/proxmox_nodes.yml"
       register: inventory_content
 
     - name: Parse inventory YAML
@@ -320,25 +336,24 @@
   tasks:
     - name: Display phase banner
       ansible.builtin.debug:
-        msg: |
-
-          ═══════════════════════════════════════════════════════════════
-               PHASE 4: Bootstrap Proxmox Nodes
-          ═══════════════════════════════════════════════════════════════
-
-          Bootstrapping {{ inventory_hostname }}
-          IP: {{ ansible_host }}
-
-          This will:
-            ✓ Create 'labtomation' OS user
-            ✓ Configure SSH key authentication
-            ✓ Setup sudo permissions
-            ✓ Create Proxmox API user and token
-            ✓ Save credentials to Vault
-            ℹ SSH config unchanged (root password auth enabled)
-
-          ═══════════════════════════════════════════════════════════════
-
+        msg:
+          - ""
+          - "═══════════════════════════════════════════════════════════════"
+          - "     PHASE 4: Bootstrap Proxmox Nodes"
+          - "═══════════════════════════════════════════════════════════════"
+          - ""
+          - "Bootstrapping {{ inventory_hostname }}"
+          - "IP: {{ ansible_host }}"
+          - ""
+          - "This will:"
+          - "  ✓ Create 'labtomation' OS user"
+          - "  ✓ Configure SSH key authentication"
+          - "  ✓ Setup sudo permissions"
+          - "  ✓ Create Proxmox API user and token"
+          - "  ✓ Save credentials to Vault"
+          - "  ℹ SSH config unchanged (root password auth enabled)"
+          - ""
+          - "═══════════════════════════════════════════════════════════════"
       run_once: false
 
   roles:
@@ -354,21 +369,21 @@
   tasks:
     - name: Display phase banner
       ansible.builtin.debug:
-        msg: |
-
-          ═══════════════════════════════════════════════════════════════
-               PHASE 5: Update Inventory Configuration
-          ═══════════════════════════════════════════════════════════════
-
-          Updating inventory to use 'labtomation' user
-          with SSH key authentication
-
-          ═══════════════════════════════════════════════════════════════
+        msg:
+          - ""
+          - "═══════════════════════════════════════════════════════════════"
+          - "     PHASE 5: Update Inventory Configuration"
+          - "═══════════════════════════════════════════════════════════════"
+          - ""
+          - "Updating inventory to use 'labtomation' user"
+          - "with SSH key authentication"
+          - ""
+          - "═══════════════════════════════════════════════════════════════"
 
 
     - name: Read current inventory
       ansible.builtin.slurp:
-        src: "{{ inventory_output_dir | default(playbook_dir + '/inventory') }}/proxmox_nodes.yml"
+        src: "{{ proxmox_discovery_inventory_output_dir | default(playbook_dir + '/inventory') }}/proxmox_nodes.yml"
       register: current_inventory
 
     - name: Parse current inventory
@@ -401,7 +416,7 @@
               ansible_become: true
               ansible_become_method: sudo
               ansible_ssh_common_args: '-o StrictHostKeyChecking=no'
-        dest: "{{ inventory_output_dir | default(playbook_dir + '/inventory') }}/proxmox_nodes.yml"
+        dest: "{{ proxmox_discovery_inventory_output_dir | default(playbook_dir + '/inventory') }}/proxmox_nodes.yml"
         mode: '0644'
 
     - name: Re-add hosts with labtomation user credentials
@@ -432,15 +447,15 @@
   tasks:
     - name: Display phase banner
       ansible.builtin.debug:
-        msg: |
-
-          ═══════════════════════════════════════════════════════════════
-               PHASE 6: Verify New User Access
-          ═══════════════════════════════════════════════════════════════
-
-          Testing SSH connection as 'labtomation' user
-
-          ═══════════════════════════════════════════════════════════════
+        msg:
+          - ""
+          - "═══════════════════════════════════════════════════════════════"
+          - "     PHASE 6: Verify New User Access"
+          - "═══════════════════════════════════════════════════════════════"
+          - ""
+          - "Testing SSH connection as 'labtomation' user"
+          - ""
+          - "═══════════════════════════════════════════════════════════════"
 
 
     - name: Test SSH connection
@@ -454,13 +469,11 @@
 
     - name: Display verification result
       ansible.builtin.debug:
-        msg: |
-          ✓ Node: {{ inventory_hostname }}
-          ✓ SSH connection successful
-          ✓ Sudo access working
-          {% if cluster_status.rc == 0 %}
-          ✓ Cluster status accessible
-          {% endif %}
+        msg:
+          - "✓ Node: {{ inventory_hostname }}"
+          - "✓ SSH connection successful"
+          - "✓ Sudo access working"
+          - "{% if cluster_status.rc == 0 %}✓ Cluster status accessible{% endif %}"
 
 
 - name: "╔═══ FINAL: Bootstrap Complete ═══╗"
@@ -472,38 +485,38 @@
   tasks:
     - name: Display completion banner
       ansible.builtin.debug:
-        msg: |
-
-          ═══════════════════════════════════════════════════════════════
-               BOOTSTRAP COMPLETE!
-          ═══════════════════════════════════════════════════════════════
-
-          All Proxmox nodes have been successfully bootstrapped!
-
-          ✓ Vault AppRole configured
-          ✓ Proxmox nodes discovered and validated
-          ✓ Labtomation users created on all nodes
-          ✓ SSH key authentication enabled
-          ✓ API tokens generated and saved to Vault
-          ℹ Root SSH access unchanged (password auth enabled)
-
-          Next Steps:
-          ─────────────────────────────────────────────────────────────
-
-          1. View your inventory:
-             cat /opt/labtomation/playbooks/inventory/proxmox_nodes.yml
-
-          2. Test Ansible connectivity:
-             ansible proxmox_nodes -m ping
-
-          3. Create VMs using Terraform or Ansible:
-             cd /opt/labtomation/playbooks
-             ansible-playbook manage_proxmox_vms.yml
-
-          4. View secrets in Vault:
-             vault kv list secret/proxmox/nodes
-
-          Documentation:
-            https://github.com/rollingafull/labtomation
-
-          ═══════════════════════════════════════════════════════════════
+        msg:
+          - ""
+          - "═══════════════════════════════════════════════════════════════"
+          - "     BOOTSTRAP COMPLETE!"
+          - "═══════════════════════════════════════════════════════════════"
+          - ""
+          - "All Proxmox nodes have been successfully bootstrapped!"
+          - ""
+          - "✓ Vault AppRole configured"
+          - "✓ Proxmox nodes discovered and validated"
+          - "✓ Labtomation users created on all nodes"
+          - "✓ SSH key authentication enabled"
+          - "✓ API tokens generated and saved to Vault"
+          - "ℹ Root SSH access unchanged (password auth enabled)"
+          - ""
+          - "Next Steps:"
+          - "─────────────────────────────────────────────────────────────"
+          - ""
+          - "1. View your inventory:"
+          - "   cat /opt/labtomation/playbooks/inventory/proxmox_nodes.yml"
+          - ""
+          - "2. Test Ansible connectivity:"
+          - "   ansible proxmox_nodes -m ping"
+          - ""
+          - "3. Create VMs using Terraform or Ansible:"
+          - "   cd /opt/labtomation/playbooks"
+          - "   ansible-playbook manage_proxmox_vms.yml"
+          - ""
+          - "4. View secrets in Vault:"
+          - "   vault kv list secret/proxmox/nodes"
+          - ""
+          - "Documentation:"
+          - "  https://github.com/rollingafull/labtomation"
+          - ""
+          - "═══════════════════════════════════════════════════════════════"

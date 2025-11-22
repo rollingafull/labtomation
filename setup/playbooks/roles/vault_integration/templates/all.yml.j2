@@ -4,11 +4,11 @@
 
 # Vault configuration
 vault_addr: "{{ vault_addr }}"
-vault_role_id: "{{ '{{' }} lookup('env', 'VAULT_ROLE_ID') {{ '}}' }}"
-vault_secret_id: "{{ '{{' }} lookup('env', 'VAULT_SECRET_ID') {{ '}}' }}"
 
-# Get Vault token using AppRole
-vault_token: "{{ '{{' }} lookup('community.hashi_vault.hashi_vault', 'secret=auth/approle/login:token role_id={{ vault_role_id }} secret_id={{ vault_secret_id }} url={{ vault_addr }}') {{ '}}' }}"
+# Vault authentication - use environment variables set by .vault_env.sh
+# VAULT_ADDR and VAULT_TOKEN are automatically available when you source the environment file
+vault_role_id: "{{ vault_role_id }}"
+vault_secret_id: "{{ vault_secret_id }}"
 
 # Labtomation configuration
 labtomation_user: labtomation

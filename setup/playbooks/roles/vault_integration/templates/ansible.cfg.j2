@@ -5,15 +5,19 @@
 # Collections path - required for ansible.posix and other collections
 collections_path = ~/.ansible/collections:/usr/share/ansible/collections
 
-inventory = inventory/proxmox_nodes.yml
+# Default inventory - proxmox_nodes.yml is generated during discovery phase
+# inventory = inventory/proxmox_nodes.yml
 host_key_checking = False
 retry_files_enabled = False
 gathering = smart
 fact_caching = jsonfile
 fact_caching_connection = /tmp/ansible_fact_cache
 fact_caching_timeout = 3600
-stdout_callback = yaml
+stdout_callback = ansible.builtin.default
 callbacks_enabled = timer, profile_tasks
+
+[callback_default]
+result_format = yaml
 
 # SSH settings
 timeout = 30
