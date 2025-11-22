@@ -11,24 +11,23 @@
   changed_when: false
   no_log: true
 
-- name: Delete existing AppRole if policy was updated
+- name: Delete existing AppRole if policy was created/updated
   ansible.builtin.command: "vault delete auth/approle/role/{{ vault_approle_name }}"
   environment:
     VAULT_ADDR: "{{ vault_addr }}"
     VAULT_TOKEN: "{{ vault_root_token }}"
   when:
     - approle_check.rc == 0
-    - policy_needs_update is defined
-    - policy_needs_update | bool
+    - policy_needs_update is defined and policy_needs_update | bool
   register: approle_deleted
   changed_when: true
 
 - name: Display AppRole deletion status
   ansible.builtin.debug:
-    msg: "→ AppRole deleted (policy was updated)"
+    msg: "→ AppRole deleted and will be recreated (policy was {{ 'updated' if existing_policy is defined and existing_policy.rc == 0 else 'created' }})"
   when: approle_deleted is defined and approle_deleted.changed
 
-- name: Create or update AppRole
+- name: Create or recreate AppRole with current policy
   ansible.builtin.command: >
     vault write auth/approle/role/{{ vault_approle_name }}
     token_policies="{{ vault_approle_policy_name }}"
