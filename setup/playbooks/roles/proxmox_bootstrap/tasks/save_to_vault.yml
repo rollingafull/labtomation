@@ -4,10 +4,10 @@
 - name: Get Vault token from AppRole
   ansible.builtin.command: >
     vault write -field=token auth/approle/login
-    role_id="{{ vault_role_id }}"
-    secret_id="{{ vault_secret_id }}"
+    role_id="{{ hostvars['localhost']['vault_role_id'] }}"
+    secret_id="{{ hostvars['localhost']['vault_secret_id'] }}"
   environment:
-    VAULT_ADDR: "{{ vault_addr }}"
+    VAULT_ADDR: "{{ hostvars['localhost']['vault_addr'] }}"
   register: vault_token_result
   delegate_to: localhost
   become: false
@@ -16,32 +16,36 @@
 
 - name: Set Vault token
   ansible.builtin.set_fact:
-    vault_token: "{{ vault_token_result.stdout }}"
+    vault_token: "{{ vault_token_result.stdout | trim }}"
   no_log: true
 
 - name: Save node credentials to Vault
-  ansible.builtin.command: >
-    vault kv put {{ vault_proxmox_nodes_path }}/{{ inventory_hostname }}
-    api_token_id="{{ api_token_id }}"
-    api_token_secret="{{ api_token_secret }}"
-    hostname="{{ inventory_hostname }}"
-    ip_address="{{ ansible_host }}"
-    proxmox_version="{{ proxmox_version }}"
-    role="{{ proxmox_role }}"
-    {% if cluster_name is defined and cluster_name != 'none' %}cluster_name="{{ cluster_name }}"{% endif %}
-    bootstrapped_at="{{ ansible_date_time.iso8601 }}"
-  environment:
-    VAULT_ADDR: "{{ vault_addr }}"
-    VAULT_TOKEN: "{{ vault_token }}"
+  ansible.builtin.uri:
+    url: "{{ hostvars['localhost']['vault_addr'] }}/v1/secret/data/proxmox/nodes/{{ inventory_hostname }}"
+    method: POST
+    headers:
+      X-Vault-Token: "{{ vault_token }}"
+      Content-Type: "application/json"
+    body_format: json
+    body:
+      data:
+        api_token_id: "{{ api_token_id }}"
+        api_token_secret: "{{ api_token_secret }}"
+        hostname: "{{ inventory_hostname }}"
+        ip_address: "{{ ansible_host }}"
+        proxmox_version: "{{ proxmox_version }}"
+        role: "{{ proxmox_role }}"
+        bootstrapped_at: "{{ ansible_date_time.iso8601 }}"
+    status_code: [200, 204]
   delegate_to: localhost
   become: false
-  no_log: true
+  no_log: false
   register: vault_save
 
 - name: Verify credentials were saved
-  ansible.builtin.command: "vault kv get {{ vault_proxmox_nodes_path }}/{{ inventory_hostname }}"
+  ansible.builtin.command: "vault kv get {{ hostvars['localhost']['vault_proxmox_nodes_path'] }}/{{ inventory_hostname }}"
   environment:
-    VAULT_ADDR: "{{ vault_addr }}"
+    VAULT_ADDR: "{{ hostvars['localhost']['vault_addr'] }}"
     VAULT_TOKEN: "{{ vault_token }}"
   delegate_to: localhost
   become: false
@@ -51,4 +55,4 @@
 
 - name: Display Vault save status
   ansible.builtin.debug:
-    msg: "✓ Credentials saved to Vault: {{ vault_proxmox_nodes_path }}/{{ inventory_hostname }}"
+    msg: "✓ Credentials saved to Vault: {{ hostvars['localhost']['vault_proxmox_nodes_path'] }}/{{ inventory_hostname }}"

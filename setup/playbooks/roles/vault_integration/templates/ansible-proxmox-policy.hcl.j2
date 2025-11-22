@@ -21,7 +21,22 @@ path "auth/token/lookup-self" {
   capabilities = ["read"]
 }
 
+# Allow token lookup (needed for internal token validation)
+path "auth/token/lookup" {
+  capabilities = ["update"]
+}
+
 # Allow token renewal
 path "auth/token/renew-self" {
   capabilities = ["update"]
+}
+
+# Allow access to sys endpoints for token validation
+path "sys/internal/ui/mounts/*" {
+  capabilities = ["read"]
+}
+
+# Allow namespace lookup
+path "sys/namespaces" {
+  capabilities = ["list"]
 }

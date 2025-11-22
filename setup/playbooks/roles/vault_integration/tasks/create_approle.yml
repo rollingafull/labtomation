@@ -36,8 +36,11 @@
   ansible.builtin.command: >
     vault write auth/approle/role/{{ vault_approle_name }}
     token_policies="{{ vault_approle_policy_name }}"
+    token_type="service"
     token_ttl="{{ vault_approle_token_ttl }}"
     token_max_ttl="{{ vault_approle_token_max_ttl }}"
+    token_explicit_max_ttl="0"
+    token_no_default_policy="false"
     bind_secret_id="{{ vault_approle_bind_secret_id | lower }}"
     secret_id_ttl="{{ vault_approle_secret_id_ttl }}"
     secret_id_num_uses="{{ vault_approle_secret_id_num_uses }}"

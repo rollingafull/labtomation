@@ -48,6 +48,19 @@
           - ""
           - "═══════════════════════════════════════════════════════════════"
 
+    - name: Detect Vault VM public IP address
+      ansible.builtin.set_fact:
+        vault_public_ip: "{{ ansible_default_ipv4.address }}"
+        cacheable: true
+
+    - name: Override vault_addr with public IP
+      ansible.builtin.set_fact:
+        vault_addr: "http://{{ vault_public_ip }}:8200"
+        cacheable: true
+
+    - name: Display detected Vault address
+      ansible.builtin.debug:
+        msg: "✓ Vault address: {{ vault_addr }} (detected from {{ vault_public_ip }})"
 
     - name: Check if ansible.posix collection is installed
       ansible.builtin.command: ansible-galaxy collection list ansible.posix

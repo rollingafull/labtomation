@@ -9,6 +9,7 @@ vault_approle_policy_name: "ansible-proxmox-policy"
 # Paths in Vault
 vault_secret_path: "secret"
 vault_proxmox_path: "{{ vault_secret_path }}/data/proxmox"
+vault_proxmox_nodes_path: "secret/proxmox/nodes"
 
 # AppRole configuration
 vault_approle_token_ttl: "768h"           # 32 days
