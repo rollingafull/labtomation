@@ -68,8 +68,8 @@
 
 - name: Set AppRole credentials
   ansible.builtin.set_fact:
-    vault_role_id: "{{ role_id_output.stdout }}"
-    vault_secret_id: "{{ secret_id_output.stdout }}"
+    vault_role_id: "{{ role_id_output.stdout | trim | replace('\"', '') }}"
+    vault_secret_id: "{{ secret_id_output.stdout | trim | replace('\"', '') }}"
   no_log: true
 
 - name: Display AppRole status

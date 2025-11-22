@@ -8,33 +8,56 @@
     secret_id="{{ vault_secret_id }}"
   environment:
     VAULT_ADDR: "{{ vault_addr }}"
-  register: approle_login
+  register: vault_integration_approle_login
   changed_when: false
   no_log: true
 
 - name: Set AppRole token
   ansible.builtin.set_fact:
-    approle_token: "{{ approle_login.stdout }}"
+    vault_integration_approle_token: "{{ vault_integration_approle_login.stdout }}"
   no_log: true
+
+- name: Debug AppRole token info (using root token)
+  ansible.builtin.command: vault token lookup {{ vault_integration_approle_token }}
+  environment:
+    VAULT_ADDR: "{{ vault_addr }}"
+    VAULT_TOKEN: "{{ vault_root_token }}"
+  register: vault_integration_token_info
+  changed_when: false
+  no_log: false
+  failed_when: false
+
+- name: Display token policies
+  ansible.builtin.debug:
+    msg: "Token lookup result (rc={{ vault_integration_token_info.rc }}): {{ vault_integration_token_info.stdout if vault_integration_token_info.rc == 0 else vault_integration_token_info.stderr }}" # noqa yaml[line-length]
 
 - name: Test reading with AppRole token
   ansible.builtin.command: vault token lookup-self
   environment:
     VAULT_ADDR: "{{ vault_addr }}"
-    VAULT_TOKEN: "{{ approle_token }}"
-  register: token_test
+    VAULT_TOKEN: "{{ vault_integration_approle_token }}"
+  register: vault_integration_token_test
   changed_when: false
-  no_log: true
+  no_log: false
   failed_when: false
+
+- name: Display token test result if failed
+  ansible.builtin.debug:
+    msg:
+      - "Token lookup-self test result:"
+      - "  RC: {{ vault_integration_token_test.rc }}"
+      - "  STDOUT: {{ vault_integration_token_test.stdout | default('(empty)') }}"
+      - "  STDERR: {{ vault_integration_token_test.stderr | default('(empty)') }}"
+  when: vault_integration_token_test.rc != 0
 
 - name: Check if token lookup succeeded
   ansible.builtin.assert:
     that:
-      - token_test.rc == 0
-    fail_msg: |
-      ✗ AppRole token validation failed
-      This may indicate a policy permission issue.
-      Check that the policy includes 'auth/token/lookup-self' permissions.
+      - vault_integration_token_test.rc == 0
+    fail_msg:
+      - "✗ AppRole token validation failed"
+      - "This may indicate a policy permission issue."
+      - "Check that the policy includes 'auth/token/lookup-self' permissions."
     success_msg: "✓ AppRole token validated successfully"
 
 - name: Enable KV v2 secrets engine if not exists
@@ -42,21 +65,21 @@
   environment:
     VAULT_ADDR: "{{ vault_addr }}"
     VAULT_TOKEN: "{{ vault_root_token }}"
-  register: secrets_engines
+  register: vault_integration_secrets_engines
   changed_when: false
   no_log: true
 
 - name: Parse secrets engines
   ansible.builtin.set_fact:
-    secrets_list: "{{ secrets_engines.stdout | from_json }}"
+    vault_integration_secrets_list: "{{ vault_integration_secrets_engines.stdout | from_json }}"
 
 - name: Enable KV v2 secrets engine
   ansible.builtin.command: vault secrets enable -version=2 -path=secret kv
   environment:
     VAULT_ADDR: "{{ vault_addr }}"
     VAULT_TOKEN: "{{ vault_root_token }}"
-  when: "'secret/' not in secrets_list"
-  register: kv_enabled
+  when: "'secret/' not in vault_integration_secrets_list"
+  register: vault_integration_kv_enabled
   changed_when: false
   no_log: true
 
@@ -67,8 +90,8 @@
     created_at="{{ ansible_date_time.iso8601 }}"
   environment:
     VAULT_ADDR: "{{ vault_addr }}"
-    VAULT_TOKEN: "{{ approle_token }}"
-  register: test_write
+    VAULT_TOKEN: "{{ vault_integration_approle_token }}"
+  register: vault_integration_kv_enabled
   changed_when: false
   no_log: true
 
@@ -76,8 +99,8 @@
   ansible.builtin.command: vault kv get secret/proxmox/test
   environment:
     VAULT_ADDR: "{{ vault_addr }}"
-    VAULT_TOKEN: "{{ approle_token }}"
-  register: test_read
+    VAULT_TOKEN: "{{ vault_integration_approle_token }}"
+  register: vault_integration_test_read
   changed_when: false
   no_log: true
 
@@ -85,7 +108,7 @@
   ansible.builtin.command: vault kv delete secret/proxmox/test
   environment:
     VAULT_ADDR: "{{ vault_addr }}"
-    VAULT_TOKEN: "{{ approle_token }}"
+    VAULT_TOKEN: "{{ vault_integration_approle_token }}"
   changed_when: false
   no_log: true
 
