@@ -15,3 +15,13 @@ path "{{ vault_secret_path }}/metadata/proxmox/*" {
 path "{{ vault_secret_path }}/metadata/proxmox" {
   capabilities = ["list"]
 }
+
+# Allow token self-introspection
+path "auth/token/lookup-self" {
+  capabilities = ["read"]
+}
+
+# Allow token renewal
+path "auth/token/renew-self" {
+  capabilities = ["update"]
+}
