@@ -64,7 +64,7 @@ set -euo pipefail
 
 GITHUB_REPO="https://github.com/rollingafull/labtomation.git"
 INSTALL_DIR="labtomation"
-SSH_KEY_NAME="id_ed25519"
+SSH_KEY_NAME="lab_id_ed25519"
 
 #-------------------------------------------------------------------------------
 # COLORS AND FORMATTING
@@ -213,6 +213,7 @@ mkdir -p "$INSTALL_DIR"
 log_success "Directory created"
 
 log_step "Cloning Labtomation repository from GitHub..."
+# if git clone -b SecondRelease --single-branch "$GITHUB_REPO" "$INSTALL_DIR" > /dev/null 2>&1; then
 if git clone "$GITHUB_REPO" "$INSTALL_DIR" > /dev/null 2>&1; then
     log_success "Repository cloned successfully"
 else
@@ -242,14 +243,25 @@ log_info "All arguments will be passed to labtomation.sh: $*"
 echo ""
 
 # Execute labtomation.sh with all passed arguments
-if ./labtomation.sh "$@"; then
+# Capture output to extract VM information
+SETUP_OUTPUT=$(mktemp)
+if ./labtomation.sh "$@" | tee "$SETUP_OUTPUT"; then
     INSTALL_SUCCESS=true
+
+    # Extract VM information from output
+    VM_IP=$(grep -oP 'IP Address:\s+\K[\d.]+' "$SETUP_OUTPUT" | tail -1)
+    VM_ID=$(grep -oP 'VM ID:\s+\K\d+' "$SETUP_OUTPUT" | tail -1)
+    VM_NAME=$(grep -oP 'VM Name:\s+\K\w+' "$SETUP_OUTPUT" | tail -1)
+
     log_success "Labtomation setup completed successfully!"
 else
     INSTALL_SUCCESS=false
     log_error "Labtomation setup failed!"
     log_warning "Installation directory preserved for debugging: $(pwd)/.."
 fi
+
+# Clean up temp file
+rm -f "$SETUP_OUTPUT"
 
 # Return to parent directory
 cd ../..
@@ -312,7 +324,15 @@ if [ "$INSTALL_SUCCESS" = true ]; then
     echo -e "${GREEN}${BOLD}✓ Installation completed successfully!${NC}"
     echo ""
     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-    echo -e "${BOLD}📦 SSH Keys (SAVE THESE!)${NC}"
+    echo -e "${BOLD}📦 VM Information${NC}"
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    [ -n "$VM_ID" ] && echo "  VM ID:      $VM_ID"
+    [ -n "$VM_NAME" ] && echo "  VM Name:    $VM_NAME"
+    [ -n "$VM_IP" ] && echo "  IP Address: $VM_IP"
+    echo "  SSH User:   labtomation"
+    echo ""
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo -e "${BOLD}🔑 SSH Keys (SAVE THESE!)${NC}"
     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
     echo "  Private: $(pwd)/$SSH_KEY_NAME"
     echo "  Public:  $(pwd)/${SSH_KEY_NAME}.pub"
@@ -324,31 +344,42 @@ if [ "$INSTALL_SUCCESS" = true ]; then
     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
     echo ""
     echo -e "${BOLD}1. Connect to your VM${NC}"
-    echo "   ssh -i $(pwd)/$SSH_KEY_NAME labtomation@<vm-ip>"
+    if [ -n "$VM_IP" ]; then
+        echo "   ssh -i $(pwd)/$SSH_KEY_NAME labtomation@$VM_IP"
+    else
+        echo "   ssh -i $(pwd)/$SSH_KEY_NAME labtomation@<vm-ip>"
+    fi
     echo ""
-    echo -e "${BOLD}2. Initialize HashiCorp Vault${NC}"
-    echo "   Vault is installed but needs initialization:"
+    echo -e "${BOLD}2. Access Vault${NC}"
+    echo "   Vault has been automatically initialized and unsealed!"
     echo ""
-    echo "   a) SSH into the VM (step 1)"
-    echo "   b) Initialize Vault:"
-    echo "      vault operator init"
+    echo "   • Credentials are stored in the VM at:"
+    echo "     /home/labtomation/.security/.vault"
     echo ""
-    echo "   c) This will output:"
-    echo "      • 5 Unseal Keys (save these securely!)"
-    echo "      • 1 Root Token (save this securely!)"
+    echo "   • Environment file (contains VAULT_ADDR and VAULT_TOKEN):"
+    echo "     /home/labtomation/.security/.vault_env.sh"
     echo ""
-    echo "   d) Unseal Vault (use 3 of the 5 keys):"
-    echo "      vault operator unseal <key1>"
-    echo "      vault operator unseal <key2>"
-    echo "      vault operator unseal <key3>"
+    echo "   • To use Vault, SSH into the VM and run:"
+    echo "     source ~/.security/.vault_env.sh"
+    echo "     vault status"
     echo ""
-    echo "   e) Login with root token:"
-    echo "      vault login <root-token>"
+    if [ -n "$VM_IP" ]; then
+        echo "   • Access Vault UI: http://$VM_IP:8200"
+    else
+        echo "   • Access Vault UI: http://<vm-ip>:8200"
+    fi
     echo ""
-    echo "   Access Vault UI: http://<vm-ip>:8200"
+    echo -e "${BOLD}3. Bootstrap Proxmox Integration${NC}"
+    echo "   SSH into the VM and run:"
+    echo "   cd /opt/labtomation/playbooks"
+    echo "   ansible-playbook bootstrap_proxmox_cluster.yml"
     echo ""
-    echo -e "${BOLD}3. Access Other Services${NC}"
-    echo "   • Jenkins: http://<vm-ip>:8080"
+    echo -e "${BOLD}4. Access Other Services${NC}"
+    if [ -n "$VM_IP" ]; then
+        echo "   • Jenkins: http://$VM_IP:8080"
+    else
+        echo "   • Jenkins: http://<vm-ip>:8080"
+    fi
     echo "     (Get initial password: sudo cat /var/lib/jenkins/secrets/initialAdminPassword)"
     echo ""
     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"

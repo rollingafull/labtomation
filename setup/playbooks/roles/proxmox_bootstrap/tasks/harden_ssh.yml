@@ -1,0 +1,14 @@
+---
+# SSH Configuration for Proxmox Nodes
+# NOTE: SSH configuration is left UNCHANGED for Proxmox VE nodes
+# - Root SSH access remains enabled with password authentication
+# - This is required for Proxmox cluster operations and emergency access
+# - Only the labtomation user is added with key-based authentication
+
+- name: Display SSH configuration status
+  ansible.builtin.debug:
+    msg:
+      - "ℹ SSH Configuration:"
+      - "  - Root SSH access: ENABLED (password auth)"
+      - "  - Labtomation user: ADDED (key-based auth)"
+      - "  - SSH config: UNCHANGED (Proxmox default maintained)"

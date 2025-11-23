@@ -1,0 +1,27 @@
+---
+# Display bootstrap summary
+
+- name: Display summary
+  ansible.builtin.debug:
+    msg:
+      - ""
+      - "═══════════════════════════════════════════════════════════════"
+      - "     Bootstrap Complete: {{ inventory_hostname }}"
+      - "═══════════════════════════════════════════════════════════════"
+      - ""
+      - "✓ OS user '{{ labtomation_user }}' created"
+      - "✓ SSH key authentication configured"
+      - "✓ Sudo permissions granted"
+      - "✓ API user '{{ proxmox_api_user }}' created"
+      - "✓ API token generated"
+      - "✓ Credentials saved to Vault"
+      - "ℹ SSH config unchanged (root password auth enabled)"
+      - ""
+      - "SSH Access:"
+      - "  User: ssh -i {{ pve_ssh_key_local }} {{ labtomation_user }}@{{ ansible_host }}"
+      - "  Root: ssh root@{{ ansible_host }} (password)"
+      - ""
+      - "Vault Path:"
+      - "  {{ vault_proxmox_nodes_path }}/{{ inventory_hostname }}"
+      - ""
+      - "═══════════════════════════════════════════════════════════════"

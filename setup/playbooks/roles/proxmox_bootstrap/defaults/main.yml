@@ -1,0 +1,49 @@
+---
+# Default variables for proxmox_bootstrap role
+
+# Labtomation user configuration
+labtomation_user: labtomation
+labtomation_group: labtomation
+labtomation_home: "/home/{{ labtomation_user }}"
+labtomation_shell: /bin/bash
+
+# SSH key paths (stored in labtomation user's secure directory)
+# pve_id_ed25519: For Proxmox node access
+# lab_id_ed25519: For lab VMs/LXC (created during VM setup)
+pve_ssh_key_local: "{{ labtomation_home }}/.security/.pve_id_ed25519"
+pve_ssh_key_pub_local: "{{ labtomation_home }}/.security/.pve_id_ed25519.pub"
+lab_ssh_key_local: "{{ labtomation_home }}/.security/.lab_id_ed25519"
+lab_ssh_key_pub_local: "{{ labtomation_home }}/.security/.lab_id_ed25519.pub"
+
+# Proxmox API configuration
+proxmox_api_user: "{{ labtomation_user }}@pve"
+proxmox_api_token_name: labtomation-token
+proxmox_api_role_name: LabAutomation
+
+# Sudo commands allowed for labtomation user
+labtomation_sudo_commands:
+  - /usr/bin/apt
+  - /usr/bin/apt-get
+  - /usr/bin/systemctl
+  - /usr/sbin/pveum
+  - /usr/sbin/qm
+  - /usr/sbin/pct
+  - /usr/sbin/pvecm
+  - /usr/sbin/pveversion
+  - /usr/bin/cat /var/lib/jenkins/secrets/initialAdminPassword
+
+# Required packages on Proxmox nodes
+proxmox_required_packages:
+  - python3
+  - python3-proxmoxer
+  - python3-requests
+  - sudo
+
+# SSH settings
+# NOTE: SSH configuration on Proxmox nodes is NOT modified
+# Root access with password authentication remains enabled (Proxmox requirement)
+modify_ssh_config: false
+ssh_config_file: /etc/ssh/sshd_config
+
+# Vault paths
+vault_proxmox_nodes_path: "secret/proxmox/nodes"

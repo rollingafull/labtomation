@@ -1,0 +1,31 @@
+---
+# Create secure directory structure
+
+- name: Check if security directory exists
+  ansible.builtin.stat:
+    path: "{{ security_dir }}"
+  register: security_dir_stat
+
+- name: Create security directory
+  ansible.builtin.file:
+    path: "{{ security_dir }}"
+    state: directory
+    mode: "{{ security_dir_mode }}"
+    owner: "{{ labtomation_user }}"
+    group: "{{ labtomation_user }}"
+  when: not security_dir_stat.stat.exists
+
+- name: Ensure security directory has correct permissions
+  ansible.builtin.file:
+    path: "{{ security_dir }}"
+    mode: "{{ security_dir_mode }}"
+    owner: "{{ labtomation_user }}"
+    group: "{{ labtomation_user }}"
+  when: security_dir_stat.stat.exists
+
+- name: Display security directory status
+  debug:
+    msg:
+      - "{% if not security_dir_stat.stat.exists %}✓ Security directory created: {{ security_dir }}{% else %}✓ Security directory already exists: {{ security_dir }}{% endif %}"
+      - "✓ Permissions: {{ security_dir_mode }}"
+      - "✓ Owner: {{ labtomation_user }}:{{ labtomation_user }}"

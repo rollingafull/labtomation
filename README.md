@@ -61,11 +61,11 @@ From this management VM, you'll be able to:
 
 ## 🚀 Current Status
 
-**Version:** 1.0.0 🎉
+**Version:** 2.0.0 🎉
 
-Labtomation has reached its **first stable release**, providing a solid foundation for homelab infrastructure management:
+Labtomation v2.0.0 adds **complete Proxmox cluster management** and **automated Vault initialization**, expanding from a simple VM creator to a full infrastructure automation platform:
 
-### ✅ What's Available Now (v1.0.0)
+### ✅ What's Available Now (v2.0.0)
 
 - **Automated VM Creation**: One-command deployment of management VM
 - **DevOps Tooling**: Pre-installed Ansible, Terraform, Vault, and Jenkins
@@ -73,14 +73,25 @@ Labtomation has reached its **first stable release**, providing a solid foundati
 - **Cloud-init Integration**: Fast, reproducible VM provisioning
 - **Idempotent Operations**: Safe to run multiple times
 - **Automatic Tagging**: VMs tagged with OS and installed services
+- **Proxmox Integration**: Complete cluster management automation ✨ NEW
+  - Network discovery and node scanning
+  - Automated SSH key distribution
+  - API token generation and Vault storage
+  - AppRole authentication for production security
+  - Real hostname usage throughout
+- **Vault Automation**: Automatic initialization and security ✨ NEW
+  - Auto-initialization on first boot
+  - Secure credential storage with immutable flags
+  - Auto-unseal using stored keys
+  - Environment file for easy CLI access
+  - SSH key backup and protection
 
 ### 🔜 Coming Soon
 
-Future versions will expand Labtomation into a complete infrastructure management solution:
+Future versions will continue expanding Labtomation's capabilities:
 
 - **Infrastructure Templates**: Pre-built Terraform modules for common scenarios
 
-  - Proxmox clusters integration management with API access and keys stored in Vault
   - Creation of multiple Proxmox cloud-init templates (VM/LXC) for various OSes and configurations
   - Kubernetes clusters
   - Development/staging/production environments

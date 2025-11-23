@@ -1,0 +1,22 @@
+---
+# Create Proxmox API user
+
+- name: Check if API user already exists
+  ansible.builtin.command: "pveum user list"
+  register: user_list
+  changed_when: false
+
+- name: Parse user list
+  ansible.builtin.set_fact:
+    api_user_exists: "{{ proxmox_api_user in user_list.stdout }}"
+
+- name: Create Proxmox API user
+  ansible.builtin.command: >
+    pveum user add {{ proxmox_api_user }}
+    --comment "Labtomation automation user"
+  when: not api_user_exists
+  register: api_user_created
+
+- name: Display API user status
+  ansible.builtin.debug:
+    msg: "{{ '✓ API user ' + proxmox_api_user + ' created' if api_user_created.changed else '✓ API user ' + proxmox_api_user + ' already exists' }}"

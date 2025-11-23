@@ -1,0 +1,17 @@
+---
+# Install required packages for discovery
+
+- name: Install required packages (multi-distro)
+  ansible.builtin.package:
+    name: "{{ proxmox_discovery_packages }}"
+    state: present
+  become: true
+
+- name: Verify nmap installation
+  ansible.builtin.command: nmap --version
+  register: proxmox_discovery_nmap_version
+  changed_when: false
+
+- name: Display nmap version
+  ansible.builtin.debug:
+    msg: "✓ nmap installed: {{ proxmox_discovery_nmap_version.stdout_lines[0] }}"

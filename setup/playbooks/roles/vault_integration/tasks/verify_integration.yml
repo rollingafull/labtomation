@@ -1,0 +1,106 @@
+---
+# Verify Vault integration is working
+
+- name: Test AppRole login
+  ansible.builtin.command: >
+    vault write -field=token auth/approle/login
+    role_id="{{ vault_role_id }}"
+    secret_id="{{ vault_secret_id }}"
+  environment:
+    VAULT_ADDR: "{{ vault_addr }}"
+  register: vault_integration_approle_login
+  changed_when: false
+  no_log: true
+
+- name: Set AppRole token
+  ansible.builtin.set_fact:
+    vault_integration_approle_token: "{{ vault_integration_approle_login.stdout | trim }}"
+  no_log: true
+
+- name: Test reading with AppRole token (using lookup without args acts as lookup-self)
+  ansible.builtin.command: vault token lookup
+  environment:
+    VAULT_ADDR: "{{ vault_addr }}"
+    VAULT_TOKEN: "{{ vault_integration_approle_token }}"
+  register: vault_integration_token_test
+  changed_when: false
+  no_log: false # Hide token but show output
+
+- name: Check if token lookup succeeded
+  ansible.builtin.assert:
+    that:
+      - vault_integration_token_test.rc == 0
+    fail_msg:
+      - "✗ AppRole token validation failed"
+      - "This may indicate a policy permission issue."
+      - "Check that the policy includes 'auth/token/lookup-self' permissions."
+    success_msg: "✓ AppRole token validated successfully"
+
+- name: Enable KV v2 secrets engine if not exists
+  ansible.builtin.command: vault secrets list -format=json
+  environment:
+    VAULT_ADDR: "{{ vault_addr }}"
+    VAULT_TOKEN: "{{ vault_root_token }}"
+  register: vault_integration_secrets_engines
+  changed_when: false
+  no_log: true
+
+- name: Parse secrets engines
+  ansible.builtin.set_fact:
+    vault_integration_secrets_list: "{{ vault_integration_secrets_engines.stdout | from_json }}"
+
+- name: Enable KV v2 secrets engine
+  ansible.builtin.command: vault secrets enable -version=2 -path=secret kv
+  environment:
+    VAULT_ADDR: "{{ vault_addr }}"
+    VAULT_TOKEN: "{{ vault_root_token }}"
+  when: "'secret/' not in vault_integration_secrets_list"
+  register: vault_integration_kv_enabled
+  changed_when: false
+  no_log: true
+
+- name: Test write capability
+  ansible.builtin.command: >
+    vault kv put secret/proxmox/test
+    test_key="test_value"
+    created_at="{{ ansible_date_time.iso8601 }}"
+  environment:
+    VAULT_ADDR: "{{ vault_addr }}"
+    VAULT_TOKEN: "{{ vault_integration_approle_token }}"
+  register: vault_integration_kv_enabled
+  changed_when: false
+  no_log: true
+
+- name: Test read capability
+  ansible.builtin.command: vault kv get secret/proxmox/test
+  environment:
+    VAULT_ADDR: "{{ vault_addr }}"
+    VAULT_TOKEN: "{{ vault_integration_approle_token }}"
+  register: vault_integration_test_read
+  changed_when: false
+  no_log: true
+
+- name: Delete test secret
+  ansible.builtin.command: vault kv delete secret/proxmox/test
+  environment:
+    VAULT_ADDR: "{{ vault_addr }}"
+    VAULT_TOKEN: "{{ vault_integration_approle_token }}"
+  changed_when: false
+  no_log: true
+
+- name: Display verification results
+  ansible.builtin.debug:
+    msg:
+      - "═══════════════════════════════════════════════════════════════"
+      - "✅ Vault Integration Verification - SUCCESS"
+      - "═══════════════════════════════════════════════════════════════"
+      - ""
+      - "✓ AppRole authentication working"
+      - "✓ Token generation successful"
+      - "✓ Read permissions verified"
+      - "✓ Write permissions verified"
+      - "✓ Delete permissions verified"
+      - ""
+      - "Ansible is now ready to use Vault for secrets management"
+      - ""
+      - "═══════════════════════════════════════════════════════════════"

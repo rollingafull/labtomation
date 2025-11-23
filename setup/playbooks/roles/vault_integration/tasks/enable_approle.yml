@@ -1,0 +1,28 @@
+---
+# Enable AppRole auth method
+
+- name: Check if AppRole auth method is already enabled
+  command: vault auth list -format=json
+  environment:
+    VAULT_ADDR: "{{ vault_addr }}"
+    VAULT_TOKEN: "{{ vault_root_token }}"
+  register: auth_methods
+  changed_when: false
+  no_log: true
+
+- name: Parse auth methods
+  set_fact:
+    auth_methods_list: "{{ auth_methods.stdout | from_json }}"
+
+- name: Enable AppRole auth method
+  command: vault auth enable approle
+  environment:
+    VAULT_ADDR: "{{ vault_addr }}"
+    VAULT_TOKEN: "{{ vault_root_token }}"
+  when: "'approle/' not in auth_methods_list"
+  register: approle_enabled
+  no_log: true
+
+- name: Display AppRole status
+  debug:
+    msg: "{{ '✓ AppRole auth method enabled' if approle_enabled.changed else '✓ AppRole auth method already enabled' }}"

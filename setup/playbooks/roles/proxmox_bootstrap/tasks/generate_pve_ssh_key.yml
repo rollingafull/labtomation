@@ -1,0 +1,57 @@
+---
+# Generate SSH key for Proxmox nodes if it doesn't exist
+
+- name: Check if Proxmox SSH key exists
+  ansible.builtin.stat:
+    path: "{{ pve_ssh_key_local }}"
+  register: pve_key_stat
+  delegate_to: localhost
+  become: false
+  run_once: true
+
+- name: Generate Proxmox SSH key if not exists
+  ansible.builtin.command: >
+    ssh-keygen -t ed25519
+    -f {{ pve_ssh_key_local }}
+    -N ""
+    -C "labtomation-proxmox-access"
+  delegate_to: localhost
+  become: false
+  when: not pve_key_stat.stat.exists
+  register: pve_key_generated
+  run_once: true
+
+- name: Check if private key is immutable
+  ansible.builtin.command: lsattr {{ pve_ssh_key_local }}
+  register: pve_key_immutable_check
+  delegate_to: localhost
+  become: false
+  changed_when: false
+  failed_when: false
+  run_once: true
+
+- name: Set correct permissions on private key (if not immutable)
+  ansible.builtin.file:
+    path: "{{ pve_ssh_key_local }}"
+    mode: '0600'
+  delegate_to: localhost
+  become: false
+  run_once: true
+  when:
+    - pve_key_immutable_check.rc == 0
+    - "'i' not in pve_key_immutable_check.stdout"
+
+- name: Set correct permissions on public key (if not immutable)
+  ansible.builtin.file:
+    path: "{{ pve_ssh_key_pub_local }}"
+    mode: '0644'
+  delegate_to: localhost
+  become: false
+  run_once: true
+  when:
+    - pve_key_immutable_check.rc == 0
+    - "'i' not in pve_key_immutable_check.stdout"
+
+- name: Display SSH key generation status
+  ansible.builtin.debug:
+    msg: "{% if pve_key_generated.changed %}✓ New Proxmox SSH key generated{% elif 'i' in pve_key_immutable_check.stdout %}✓ Using existing Proxmox SSH key (protected with immutable flag){% else %}✓ Using existing Proxmox SSH key{% endif %}"

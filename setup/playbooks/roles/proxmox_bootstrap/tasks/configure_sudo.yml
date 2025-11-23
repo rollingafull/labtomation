@@ -1,0 +1,20 @@
+---
+# Configure sudo permissions for labtomation user
+
+- name: Create sudoers file from template
+  ansible.builtin.template:
+    src: sudoers.j2
+    dest: "/etc/sudoers.d/{{ labtomation_user }}"
+    owner: root
+    group: root
+    mode: '0440'
+    validate: '/usr/sbin/visudo -cf %s'
+
+- name: Test sudo access
+  ansible.builtin.command: "sudo -l -U {{ labtomation_user }}"
+  register: sudo_test
+  changed_when: false
+
+- name: Display sudo configuration status
+  ansible.builtin.debug:
+    msg: "✓ Sudo permissions configured for {{ labtomation_user }}"

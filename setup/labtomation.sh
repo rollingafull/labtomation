@@ -7,8 +7,8 @@
 #-------------------------------------------------------------------------------
 # Author: rolling (rolling@a-full.com)
 # Created: 2025-10-04
-# Updated: 2025-10-24
-# Version: 1.0.2
+# Updated: 2025-10-27
+# Version: 2.0.0
 #===============================================================================
 #
 # OVERVIEW:
@@ -19,12 +19,12 @@
 #   4. Configures cloud-init with SSH keys
 #   5. Starts VM and waits for network
 #   6. Installs Ansible + Python via Bash
-#   7. Runs Ansible playbooks to install:
+#   7. Runs Ansible playbooks to install and configure:
 #      - Terraform
-#      - HashiCorp Vault
+#      - HashiCorp Vault (automatically initialized via vault_init role)
 #      - Jenkins
 #      - Common development tools (git, vim, btop, curl, etc.)
-#   8. Adds service tags to VM (OS + services)
+#      - Security setup (SSH keys backup, Vault initialization)
 #
 # USAGE:
 #   ./labtomation.sh [OPTIONS]
@@ -201,25 +201,280 @@ select_os_interactive() {
 }
 
 #-------------------------------------------------------------------------------
+# Function: setup_security_directory
+# Description: Creates secure directory structure for sensitive files
+#-------------------------------------------------------------------------------
+setup_security_directory() {
+    local security_dir="/home/labtomation/.security"
+
+    log_step "Setting up secure directory structure" "INFO" >&2
+
+    # Create security directory if it doesn't exist
+    if [ ! -d "$security_dir" ]; then
+        mkdir -p "$security_dir"
+        chown labtomation:labtomation "$security_dir"
+        chmod 700 "$security_dir"
+        log_step "Created secure directory: $security_dir" "SUCCESS" >&2
+    else
+        log_step "Secure directory already exists" "INFO" >&2
+    fi
+
+    echo "$security_dir"
+}
+
+#-------------------------------------------------------------------------------
+# Function: secure_file
+# Description: Applies strict permissions and immutable flag to a file
+# Arguments: $1 - file path
+#-------------------------------------------------------------------------------
+secure_file() {
+    local file="$1"
+
+    if [ ! -f "$file" ]; then
+        log_step "File not found: $file" "ERROR" >&2
+        return 1
+    fi
+
+    # Set ownership and permissions
+    chown labtomation:labtomation "$file"
+    chmod 400 "$file"
+
+    # Make file immutable (prevents accidental deletion/modification)
+    chattr +i "$file" 2>/dev/null || {
+        log_step "Warning: Could not set immutable flag on $file" "WARNING" >&2
+    }
+
+    log_step "Secured file: $file (400, immutable)" "SUCCESS" >&2
+}
+
+#-------------------------------------------------------------------------------
+# Function: backup_ssh_keys
+# Description: Backs up SSH keys to secure directory with immutable flag
+# Arguments: $1 - source key path
+#-------------------------------------------------------------------------------
+backup_ssh_keys() {
+    local source_key="$1"
+    local security_dir="$2"
+    local key_name=$(basename "$source_key")
+
+    log_step "Backing up SSH keys to secure directory" "INFO" >&2
+
+    # Backup private key
+    if [ -f "$source_key" ]; then
+        cp "$source_key" "$security_dir/.$key_name"
+        secure_file "$security_dir/.$key_name"
+    fi
+
+    # Backup public key
+    if [ -f "${source_key}.pub" ]; then
+        cp "${source_key}.pub" "$security_dir/.${key_name}.pub"
+        secure_file "$security_dir/.${key_name}.pub"
+    fi
+
+    log_step "SSH keys backed up and secured" "SUCCESS" >&2
+}
+
+#-------------------------------------------------------------------------------
 # Function: setup_ssh_keys
 # Description: Ensures SSH keys exist, generates if needed
 # Returns: Path to private key on stdout
 #-------------------------------------------------------------------------------
 setup_ssh_keys() {
-    local ssh_key="$SCRIPT_DIR/id_ed25519"
+    local lab_ssh_key="$SCRIPT_DIR/lab_id_ed25519"
+    local pve_ssh_key="$SCRIPT_DIR/pve_id_ed25519"
 
-    # Check for existing SSH keys
-    if [ -f "${ssh_key}.pub" ] && [ -f "$ssh_key" ]; then
-        log_step "Using existing SSH key: ${ssh_key}" "INFO" >&2
+    # Check for existing lab SSH keys
+    if [ -f "${lab_ssh_key}.pub" ] && [ -f "$lab_ssh_key" ]; then
+        log_step "Using existing lab SSH key: ${lab_ssh_key}" "INFO" >&2
     else
-        log_step "Generating new SSH key" "INFO" >&2
-        ssh-keygen -t ed25519 -f "$ssh_key" -N "" -C "labtomation@proxmox" >&2
-        chmod 600 "$ssh_key"
-        chmod 644 "${ssh_key}.pub"
-        log_step "SSH key generated: ${ssh_key}" "SUCCESS" >&2
+        log_step "Generating new SSH key for lab VMs/LXC" "INFO" >&2
+        ssh-keygen -t ed25519 -f "$lab_ssh_key" -N "" -C "labtomation-lab-access" >&2
+        chmod 600 "$lab_ssh_key"
+        chmod 644 "${lab_ssh_key}.pub"
+        log_step "Lab SSH key generated: ${lab_ssh_key}" "SUCCESS" >&2
     fi
 
-    echo "$ssh_key"
+    # Check for existing Proxmox SSH keys
+    if [ -f "${pve_ssh_key}.pub" ] && [ -f "$pve_ssh_key" ]; then
+        log_step "Using existing Proxmox SSH key: ${pve_ssh_key}" "INFO" >&2
+    else
+        log_step "Generating new SSH key for Proxmox nodes" "INFO" >&2
+        ssh-keygen -t ed25519 -f "$pve_ssh_key" -N "" -C "labtomation-proxmox-access" >&2
+        chmod 600 "$pve_ssh_key"
+        chmod 644 "${pve_ssh_key}.pub"
+        log_step "Proxmox SSH key generated: ${pve_ssh_key}" "SUCCESS" >&2
+    fi
+
+    echo "$lab_ssh_key"
+}
+
+#-------------------------------------------------------------------------------
+# Function: initialize_vault_auto
+# Description: Automatically initializes Vault and saves credentials securely
+# Arguments: $1 - security directory path
+#-------------------------------------------------------------------------------
+initialize_vault_auto() {
+    local security_dir="$1"
+    local vault_creds="$security_dir/.vault"
+    local vault_addr="http://127.0.0.1:8200"
+
+    log_step "Checking Vault initialization status" "INFO" >&2
+
+    # Check if Vault is already initialized
+    if vault status -address="$vault_addr" 2>/dev/null | grep -q "Initialized.*true"; then
+        log_step "Vault is already initialized" "INFO" >&2
+
+        # Check if credentials file exists
+        if [ -f "$vault_creds" ]; then
+            log_step "Vault credentials file already exists" "INFO" >&2
+            return 0
+        else
+            log_step "Vault initialized but credentials file missing" "WARNING" >&2
+            log_step "Manual intervention required" "ERROR" >&2
+            return 1
+        fi
+    fi
+
+    log_step "Initializing Vault..." "INFO" >&2
+
+    # Initialize Vault and capture output
+    local init_output
+    init_output=$(vault operator init -address="$vault_addr" -format=json 2>&1)
+
+    if [ $? -ne 0 ]; then
+        log_step "Failed to initialize Vault" "ERROR" >&2
+        echo "$init_output" >&2
+        return 1
+    fi
+
+    # Parse and save credentials
+    local unseal_keys=$(echo "$init_output" | jq -r '.unseal_keys_b64[]')
+    local root_token=$(echo "$init_output" | jq -r '.root_token')
+
+    # Create credentials file
+    cat > "$vault_creds" << EOF
+# Vault Initialization Credentials
+# Generated: $(date -Iseconds)
+# KEEP THIS FILE SECURE - Contains root access to Vault
+
+[unseal_keys]
+$(echo "$unseal_keys" | awk '{print "key" NR "=" $0}')
+
+[root_token]
+token=$root_token
+
+[metadata]
+initialized_at=$(date -Iseconds)
+vault_address=$vault_addr
+EOF
+
+    # Secure the credentials file
+    secure_file "$vault_creds"
+
+    log_step "Vault initialized successfully" "SUCCESS" >&2
+    log_step "Credentials saved to: $vault_creds" "SUCCESS" >&2
+
+    echo "$vault_creds"
+}
+
+#-------------------------------------------------------------------------------
+# Function: unseal_vault_auto
+# Description: Automatically unseals Vault using stored credentials
+# Arguments: $1 - vault credentials file path
+#-------------------------------------------------------------------------------
+unseal_vault_auto() {
+    local vault_creds="$1"
+    local vault_addr="http://127.0.0.1:8200"
+
+    if [ ! -f "$vault_creds" ]; then
+        log_step "Vault credentials file not found: $vault_creds" "ERROR" >&2
+        return 1
+    fi
+
+    log_step "Checking Vault seal status" "INFO" >&2
+
+    # Check if Vault is already unsealed
+    if vault status -address="$vault_addr" 2>/dev/null | grep -q "Sealed.*false"; then
+        log_step "Vault is already unsealed" "INFO" >&2
+        return 0
+    fi
+
+    log_step "Unsealing Vault..." "INFO" >&2
+
+    # Temporarily remove immutable flag to read file
+    chattr -i "$vault_creds" 2>/dev/null
+
+    # Extract unseal keys (need 3 out of 5)
+    local key1=$(grep "key1=" "$vault_creds" | cut -d= -f2)
+    local key2=$(grep "key2=" "$vault_creds" | cut -d= -f2)
+    local key3=$(grep "key3=" "$vault_creds" | cut -d= -f2)
+
+    # Restore immutable flag
+    chattr +i "$vault_creds" 2>/dev/null
+
+    # Unseal with 3 keys
+    vault operator unseal -address="$vault_addr" "$key1" >/dev/null 2>&1
+    vault operator unseal -address="$vault_addr" "$key2" >/dev/null 2>&1
+    vault operator unseal -address="$vault_addr" "$key3" >/dev/null 2>&1
+
+    # Verify unsealed
+    if vault status -address="$vault_addr" 2>/dev/null | grep -q "Sealed.*false"; then
+        log_step "Vault unsealed successfully" "SUCCESS" >&2
+        return 0
+    else
+        log_step "Failed to unseal Vault" "ERROR" >&2
+        return 1
+    fi
+}
+
+#-------------------------------------------------------------------------------
+# Function: login_vault_auto
+# Description: Automatically logs into Vault using stored root token
+# Arguments: $1 - vault credentials file path
+#-------------------------------------------------------------------------------
+login_vault_auto() {
+    local vault_creds="$1"
+    local vault_addr="http://127.0.0.1:8200"
+
+    if [ ! -f "$vault_creds" ]; then
+        log_step "Vault credentials file not found: $vault_creds" "ERROR" >&2
+        return 1
+    fi
+
+    log_step "Logging into Vault" "INFO" >&2
+
+    # Temporarily remove immutable flag to read file
+    chattr -i "$vault_creds" 2>/dev/null
+
+    # Extract root token
+    local root_token=$(grep "token=" "$vault_creds" | cut -d= -f2)
+
+    # Restore immutable flag
+    chattr +i "$vault_creds" 2>/dev/null
+
+    # Login to Vault
+    export VAULT_ADDR="$vault_addr"
+    export VAULT_TOKEN="$root_token"
+
+    if vault token lookup >/dev/null 2>&1; then
+        log_step "Vault login successful" "SUCCESS" >&2
+
+        # Save token to environment file for labtomation user
+        local env_file="/home/labtomation/.vault_env"
+        cat > "$env_file" << EOF
+# Vault environment variables
+# Source this file: source ~/.vault_env
+export VAULT_ADDR="$vault_addr"
+export VAULT_TOKEN="$root_token"
+EOF
+        chown labtomation:labtomation "$env_file"
+        chmod 600 "$env_file"
+
+        return 0
+    else
+        log_step "Vault login failed" "ERROR" >&2
+        return 1
+    fi
 }
 
 #-------------------------------------------------------------------------------
@@ -227,7 +482,7 @@ setup_ssh_keys() {
 #-------------------------------------------------------------------------------
 
 main() {
-    log_header "Labtomation v1.0.2 - Proxmox Lab Automation"
+    log_header "Labtomation v2.0.0 - Proxmox Lab Automation"
 
     # Parse command line arguments
     parse_arguments "$@"
@@ -435,7 +690,7 @@ main() {
 
     # Create remote directories with proper permissions
     ssh -o StrictHostKeyChecking=no -i "$ssh_key" "${os_user}@${vm_ip}" \
-        "sudo mkdir -p /opt/labtomation/config && sudo chown -R ${os_user}:${os_user} /opt/labtomation"
+        "sudo mkdir -p /opt/labtomation/{config,setup} && sudo chown -R ${os_user}:${os_user} /opt/labtomation"
 
     # Copy setup scripts and libraries
     scp -o StrictHostKeyChecking=no -i "$ssh_key" \
@@ -447,6 +702,16 @@ main() {
     scp -o StrictHostKeyChecking=no -i "$ssh_key" \
         "$SCRIPT_DIR/config/"*.conf \
         "${os_user}@${vm_ip}:/opt/labtomation/config/"
+
+    # Copy SSH keys to /opt/labtomation/setup/ for vault_init role
+    # lab_id_ed25519: For lab VMs/LXC access (bootstrap key)
+    # pve_id_ed25519: For Proxmox node access
+    scp -o StrictHostKeyChecking=no -i "$ssh_key" \
+        "$ssh_key" "$ssh_key.pub" \
+        "$SCRIPT_DIR/pve_id_ed25519" "$SCRIPT_DIR/pve_id_ed25519.pub" \
+        "${os_user}@${vm_ip}:/opt/labtomation/setup/"
+
+    log_step "SSH keys copied to VM (lab + pve)" "SUCCESS"
 
     # Copy playbooks
     scp -r -o StrictHostKeyChecking=no -i "$ssh_key" \
@@ -590,17 +855,28 @@ VERIFY_SCRIPT
     echo ""
     echo "Vault Access:"
     echo "  URL: http://$vm_ip:8200"
-    echo "  Initialize: export VAULT_ADDR='http://127.0.0.1:8200' && vault operator init"
+    echo "  Status: ✓ Initialized and unsealed automatically (via vault_init role)"
+    echo "  Credentials: /home/labtomation/.security/.vault (secured, immutable)"
+    echo "  Environment: /home/labtomation/.security/.vault_env.sh"
+    echo ""
+    echo "Security:"
+    echo "  ✓ Security directory created: /home/labtomation/.security/"
+    echo "  ✓ SSH keys backed up (lab_id_ed25519, pve_id_ed25519)"
+    echo "  ✓ Vault credentials secured (400, immutable)"
+    echo "  ✓ All sensitive files protected with chattr +i"
+    echo ""
+    echo "Environment:"
+    echo "  Source Vault credentials: source ~/.security/.vault_env.sh"
     echo ""
     echo "Next Steps:"
-    echo "  1. Initialize Vault and save unseal keys"
-    echo "  2. Configure Ansible playbooks for your infrastructure"
-    echo "  3. Use Terraform for IaC deployments"
+    echo "  1. SSH into VM: ssh -i $ssh_key ${os_user}@${vm_ip}"
+    echo "  2. Source Vault: source ~/.security/.vault_env.sh"
+    echo "  3. Bootstrap Proxmox: cd /opt/labtomation/playbooks && ansible-playbook bootstrap_proxmox_cluster.yml"
     echo ""
     echo "Ansible Playbooks:"
     echo "  Location: /opt/labtomation/playbooks"
     echo "  Re-run: cd /opt/labtomation/playbooks && ansible-playbook -i inventory/localhost.yml setup_devops_tools.yml"
-    echo "  Tags: --tags terraform,vault,jenkins"
+    echo "  Tags: --tags terraform,vault,vault_init,jenkins"
     echo "=========================================="
     echo ""
 

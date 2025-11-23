@@ -1,0 +1,53 @@
+---
+# Main tasks for vault_init role
+
+- name: Display vault_init banner
+  debug:
+    msg:
+      - ""
+      - "═══════════════════════════════════════════════════════════════"
+      - "     Vault Initialization & Security Setup"
+      - "═══════════════════════════════════════════════════════════════"
+      - ""
+      - "Setting up secure credential storage and Vault init"
+      - ""
+      - "═══════════════════════════════════════════════════════════════"
+
+- name: Create security directory structure
+  include_tasks: create_security_dir.yml
+  tags: [security, vault_init]
+
+- name: Backup SSH keys to secure location
+  include_tasks: backup_ssh_keys.yml
+  tags: [security, ssh_backup]
+
+- name: Wait for Vault service to be ready
+  include_tasks: wait_for_vault.yml
+  tags: [vault_init]
+
+- name: Check Vault initialization status
+  include_tasks: check_vault_status.yml
+  tags: [vault_init]
+
+- name: Initialize Vault if needed
+  include_tasks: initialize_vault.yml
+  when: not vault_is_initialized
+  tags: [vault_init]
+
+- name: Unseal Vault automatically
+  include_tasks: unseal_vault.yml
+  when: vault_is_sealed and vault_creds_file_exists
+  tags: [vault_init, unseal]
+
+- name: Create Vault environment file
+  include_tasks: create_vault_env.yml
+  when: vault_creds_file_exists
+  tags: [vault_init, config]
+
+- name: Verify security setup
+  include_tasks: verify_security.yml
+  tags: [security, verify]
+
+- name: Display setup summary
+  include_tasks: display_summary.yml
+  tags: [always]

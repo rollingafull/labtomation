@@ -1,0 +1,29 @@
+---
+# Main tasks for proxmox_discovery role
+
+- name: Display discovery banner
+  ansible.builtin.debug:
+    msg:
+      - ""
+      - "═══════════════════════════════════════════════════════════════"
+      - "     Proxmox Node Discovery"
+      - "═══════════════════════════════════════════════════════════════"
+      - ""
+      - "Scanning network for Proxmox VE nodes..."
+      - ""
+      - "═══════════════════════════════════════════════════════════════"
+
+- name: Install required packages
+  ansible.builtin.include_tasks: install_packages.yml
+
+- name: Scan network for Proxmox nodes
+  ansible.builtin.include_tasks: scan_network.yml
+
+- name: Validate discovered nodes
+  ansible.builtin.include_tasks: validate_nodes.yml
+
+- name: Generate inventory file
+  ansible.builtin.include_tasks: generate_inventory.yml
+
+- name: Display discovery summary
+  ansible.builtin.include_tasks: display_summary.yml

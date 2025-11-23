@@ -1,0 +1,38 @@
+---
+# Default variables for vault_init role
+
+# User configuration
+# Use SUDO_USER if available (when running with sudo), otherwise fallback to labtomation
+labtomation_user: "{{ ansible_env.SUDO_USER | default('labtomation') }}"
+labtomation_home: "/home/{{ labtomation_user }}"
+
+# Vault configuration
+vault_addr: "http://127.0.0.1:8200"
+vault_max_init_wait: 30  # seconds to wait for Vault to be ready
+
+# Security directory
+security_dir: "{{ labtomation_home }}/.security"
+security_dir_mode: "0700"
+
+# Vault credentials file
+vault_creds_file: "{{ security_dir }}/.vault"
+vault_creds_mode: "0400"
+
+# Vault environment file (hidden file with restrictive permissions)
+vault_env_file: "{{ security_dir }}/.vault_env.sh"
+vault_env_mode: "0400"
+
+# SSH keys configuration
+# Keys are stored in security directory with hidden names
+lab_ssh_key_source: "{{ security_dir }}/.lab_id_ed25519"
+pve_ssh_key_source: "{{ security_dir }}/.pve_id_ed25519"
+# Legacy paths for migration (keys will be moved from here)
+lab_ssh_key_legacy: "/opt/labtomation/setup/lab_id_ed25519"
+pve_ssh_key_legacy: "/opt/labtomation/setup/pve_id_ed25519"
+
+# Immutable files protection
+enable_immutable: true
+
+# Auto-unseal configuration
+auto_unseal: true
+unseal_keys_required: 3

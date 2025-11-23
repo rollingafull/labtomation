@@ -1,0 +1,53 @@
+---
+# Display Vault initialization summary
+
+- name: Build summary message
+  ansible.builtin.set_fact:
+    vault_init_summary:
+      - "═══════════════════════════════════════════════════════════════"
+      - "✅ Vault Initialization Complete"
+      - "═══════════════════════════════════════════════════════════════"
+      - ""
+      - "✓ Security directory: {{ security_dir }}"
+      - "✓ SSH keys backed up securely"
+      - "✓ Vault initialized and unsealed"
+      - "✓ Credentials: {{ vault_creds_file }}"
+      - "✓ Environment: {{ vault_env_file }}"
+      - "{% if enable_immutable %}✓ Immutable flags set on critical files{% endif %}"
+      - ""
+      - "Security Configuration:"
+      - "  - Directory permissions: 700"
+      - "  - SSH key backups: 400 (immutable)"
+      - "  - Vault credentials: 400 (immutable)"
+      - "  - Vault environment: {{ vault_env_mode }}"
+      - ""
+      - "Vault Status:"
+      - "  - Address: {{ vault_addr }}"
+      - "  - Initialized: Yes"
+      - "  - Sealed: No"
+      - ""
+      - "Next Steps:"
+      - "  1. Source environment file:"
+      - "     source {{ vault_env_file }}"
+      - ""
+      - "  2. Verify Vault access:"
+      - "     vault status"
+      - ""
+      - "  3. Run Vault integration (Proxmox):"
+      - "     cd /opt/labtomation/playbooks"
+      - "     ansible-playbook bootstrap_proxmox_cluster.yml"
+      - ""
+      - "═══════════════════════════════════════════════════════════════"
+
+- name: Display summary
+  ansible.builtin.debug:
+    msg: "{{ vault_init_summary }}"
+
+- name: Save summary to log file
+  ansible.builtin.copy:
+    content: "{{ vault_init_summary }}"
+    dest: "{{ security_dir }}/vault_init_summary.log"
+    mode: '0600'
+    owner: "{{ labtomation_user }}"
+    group: "{{ labtomation_user }}"
+  when: security_dir is defined

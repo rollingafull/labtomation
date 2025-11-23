@@ -1,0 +1,41 @@
+---
+# Default variables for vault_integration role
+
+# Vault configuration
+vault_addr: "http://127.0.0.1:8200"
+vault_approle_name: "ansible-automation"
+vault_approle_policy_name: "ansible-proxmox-policy"
+
+# Paths in Vault
+vault_secret_path: "secret"
+vault_proxmox_path: "{{ vault_secret_path }}/data/proxmox"
+vault_proxmox_nodes_path: "secret/proxmox/nodes"
+
+# AppRole configuration
+vault_approle_token_ttl: "768h"           # 32 days
+vault_approle_token_max_ttl: "8760h"      # 1 year
+vault_approle_bind_secret_id: true
+vault_approle_secret_id_ttl: "0"          # Never expires
+vault_approle_secret_id_num_uses: "0"     # Unlimited uses
+
+# Files
+vault_config_dir: "/opt/labtomation"
+vault_approle_file: "{{ vault_config_dir }}/.vault-approle"
+vault_env_file: "{{ vault_config_dir }}/.env"
+
+# Required Python modules (installed via pip)
+vault_required_python_modules:
+  - hvac
+  - requests
+
+# Required Ansible collections
+vault_required_collections:
+  - community.hashi_vault
+  - community.general
+
+# Policy permissions
+vault_policy_paths:
+  - path: "secret/data/proxmox/*"
+    capabilities: ["create", "read", "update", "delete", "list"]
+  - path: "secret/metadata/proxmox/*"
+    capabilities: ["read", "list", "delete"]

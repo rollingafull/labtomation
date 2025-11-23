@@ -1,0 +1,58 @@
+---
+# Main tasks for vault_integration role
+
+- name: Check if Vault is installed
+  command: which vault
+  register: vault_check
+  failed_when: false
+  changed_when: false
+
+- name: Fail if Vault is not installed
+  fail:
+    msg: "Vault is not installed. Please install HashiCorp Vault first."
+  when: vault_check.rc != 0
+
+- name: Check Vault status
+  command: vault status -format=json
+  environment:
+    VAULT_ADDR: "{{ vault_addr }}"
+  register: vault_status
+  failed_when: false
+  changed_when: false
+
+- name: Parse Vault status
+  set_fact:
+    vault_status_json: "{{ vault_status.stdout | from_json }}"
+  when: vault_status.rc == 0
+
+- name: Verify Vault is operational
+  fail:
+    msg:
+      - "Vault is not operational. Status check returned: {{ vault_status.rc }}"
+      - "This should not happen as PHASE 0 should have unsealed Vault."
+      - "Please check Vault service: systemctl status vault"
+  when: vault_status.rc != 0
+
+- name: Install required packages
+  include_tasks: install_requirements.yml
+
+- name: Check Vault authentication
+  include_tasks: check_vault_auth.yml
+
+- name: Enable AppRole auth method
+  include_tasks: enable_approle.yml
+
+- name: Create Ansible policy
+  include_tasks: create_policy.yml
+
+- name: Create AppRole
+  include_tasks: create_approle.yml
+
+- name: Save AppRole credentials
+  include_tasks: save_approle_credentials.yml
+
+- name: Configure Ansible
+  include_tasks: configure_ansible.yml
+
+- name: Verify Vault integration
+  include_tasks: verify_integration.yml

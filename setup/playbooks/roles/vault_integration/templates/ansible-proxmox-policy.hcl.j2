@@ -1,0 +1,42 @@
+# Vault Policy for Ansible Proxmox Automation
+# Generated: {{ ansible_date_time.iso8601 }}
+
+# Allow full access to Proxmox secrets
+path "{{ vault_secret_path }}/data/proxmox/*" {
+  capabilities = ["create", "read", "update", "delete", "list"]
+}
+
+# Allow access to Proxmox metadata
+path "{{ vault_secret_path }}/metadata/proxmox/*" {
+  capabilities = ["read", "list", "delete"]
+}
+
+# Allow listing secrets
+path "{{ vault_secret_path }}/metadata/proxmox" {
+  capabilities = ["list"]
+}
+
+# Allow token self-introspection
+path "auth/token/lookup-self" {
+  capabilities = ["read"]
+}
+
+# Allow token lookup (needed for internal token validation)
+path "auth/token/lookup" {
+  capabilities = ["update"]
+}
+
+# Allow token renewal
+path "auth/token/renew-self" {
+  capabilities = ["update"]
+}
+
+# Allow access to sys endpoints for token validation
+path "sys/internal/ui/mounts/*" {
+  capabilities = ["read"]
+}
+
+# Allow namespace lookup
+path "sys/namespaces" {
+  capabilities = ["list"]
+}

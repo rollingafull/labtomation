@@ -1,0 +1,45 @@
+---
+# Save credentials to Vault using hostname
+
+- name: Get Vault root token (from localhost hostvars)
+  ansible.builtin.set_fact:
+    vault_token: "{{ hostvars['localhost']['vault_root_token'] }}"
+  no_log: true
+
+- name: Save node credentials to Vault
+  ansible.builtin.uri:
+    url: "{{ hostvars['localhost']['vault_addr'] }}/v1/secret/data/proxmox/nodes/{{ inventory_hostname }}"
+    method: POST
+    headers:
+      X-Vault-Token: "{{ vault_token }}"
+      Content-Type: "application/json"
+    body_format: json
+    body:
+      data:
+        api_token_id: "{{ api_token_id }}"
+        api_token_secret: "{{ api_token_secret }}"
+        hostname: "{{ inventory_hostname }}"
+        ip_address: "{{ ansible_host }}"
+        proxmox_version: "{{ proxmox_version }}"
+        role: "{{ proxmox_role }}"
+        bootstrapped_at: "{{ ansible_date_time.iso8601 }}"
+    status_code: [200, 204]
+  delegate_to: localhost
+  become: false
+  no_log: true
+  register: vault_save
+
+- name: Verify credentials were saved
+  ansible.builtin.command: "vault kv get {{ hostvars['localhost']['vault_proxmox_nodes_path'] }}/{{ inventory_hostname }}"
+  environment:
+    VAULT_ADDR: "{{ hostvars['localhost']['vault_addr'] }}"
+    VAULT_TOKEN: "{{ vault_token }}"
+  delegate_to: localhost
+  become: false
+  changed_when: false
+  no_log: true
+  register: vault_verify
+
+- name: Display Vault save status
+  ansible.builtin.debug:
+    msg: "✓ Credentials saved to Vault: {{ hostvars['localhost']['vault_proxmox_nodes_path'] }}/{{ inventory_hostname }}"

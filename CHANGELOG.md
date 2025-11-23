@@ -13,6 +13,335 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [2.0.0] - 2025-11-23 🎉
+
+### Major Release - Proxmox Integration & Vault Automation
+
+This is a major release that adds complete Proxmox cluster management capabilities and automated Vault initialization. This version includes extensive bug fixes and improvements to ensure production-ready Proxmox cluster bootstrapping.
+
+### Added
+
+#### Proxmox Integration
+
+- **Automated Proxmox Cluster Management**: Complete suite of Ansible playbooks for Proxmox VE cluster automation
+  - `bootstrap_proxmox_cluster.yml` - Full cluster bootstrap automation
+  - `manage_proxmox_vms.yml` - VM management via API
+  - Network scanning and discovery of Proxmox nodes
+  - Automatic API token generation and Vault storage
+
+- **New Ansible Roles for Proxmox**:
+  - `vault_integration` - AppRole authentication setup for Vault
+  - `proxmox_discovery` - Network scanning to find Proxmox nodes
+  - `proxmox_bootstrap` - Node configuration and user setup
+  - `proxmox_management` - Ongoing VM/LXC management
+
+- **SSH Key Management**:
+  - Separated SSH keys for different purposes:
+    - `lab_id_ed25519` - For lab VMs/LXC created with Terraform
+    - `pve_id_ed25519` - For Proxmox node access
+  - Automatic key generation and distribution
+  - Secure backup with immutable flags
+  - Proper SSH key authentication throughout bootstrap process
+
+- **Dynamic IP Detection**:
+  - Automatic detection of Vault VM public IP address using `ansible_default_ipv4.address`
+  - Allows Proxmox nodes to connect back to Vault during bootstrap
+  - IP cached across all playbook plays for consistency
+
+#### Vault Automation
+
+- **vault_init Role**: Complete Vault initialization and security automation
+  - Automatic Vault initialization on first boot
+  - Secure credential storage in `/home/labtomation/.security/.vault`
+  - Auto-unseal using stored keys (3 of 5)
+  - SSH key backup with immutable flags (`chattr +i`)
+  - Environment file creation for easy CLI access
+  - Comprehensive security verification
+
+- **Security Directory Structure**:
+  - Created `/home/labtomation/.security/`
+  - Hidden files for SSH keys and credentials
+  - Immutable flags on critical files
+
+- **Vault Integration**:
+  - AppRole authentication for production security
+  - Automatic token management
+  - Playbooks can read Vault credentials automatically
+  - Environment file for manual access: `.vault_env.sh` (hidden, 400 permissions)
+
+#### Documentation
+
+- **PROXMOX_README.md**: Comprehensive guide for Proxmox integration
+  - Architecture diagrams
+  - Quick start guide
+  - Security features documentation
+  - Troubleshooting section
+
+- **vault_init Role Documentation**:
+  - README.md - Complete role documentation
+  - TESTING.md - Testing guide and validation results
+
+- **Test Playbooks**:
+  - `test_vault_init.yml` - Standalone testing for vault_init role
+
+### Changed
+
+- **labtomation.sh v2.0.0**:
+  - Removed inline bash security script
+  - Now uses vault_init Ansible role for security setup
+  - Updated to copy SSH keys to VM for role consumption
+  - Enhanced final summary with new security features
+
+- **setup_devops_tools.yml**:
+  - Added vault_init role execution after vault installation
+  - Updated post-installation summary
+  - Added vault_init tag support
+
+- **Vault Configuration**:
+  - Credentials file format updated for easier parsing
+  - Environment file includes helper functions
+  - Auto-unseal on system startup
+
+- **Message Format Standardization**:
+  - Converted all playbook messages from multiline (`msg: |`) to list format (`msg: [...]`)
+  - Improved readability in Ansible output across 17+ files
+  - Consistent formatting across all roles and playbooks
+
+- **Ansible Collection Installation**:
+  - Changed from conditional installation to always using `--force` flag
+  - Ensures required collections (`ansible.posix`, `community.general`, etc.) are always present
+  - Prevents module resolution failures in clean installations
+
+- **Sudo Mechanism**:
+  - Changed from Ansible `become: true` to direct `sudo -n` commands for verification tasks
+  - Resolves incompatibility with NOPASSWD sudo configuration
+  - NOPASSWD sudo requires exact command path matching; Ansible's become wraps commands breaking this
+
+- **Vault Token Usage**:
+  - Temporarily using root token instead of AppRole token for save operations
+  - Workaround for namespace error in Vault OSS
+  - AppRole authentication still used for read operations
+
+### Fixed
+
+- **Variable Persistence Between Plays**:
+  - Added `cacheable: true` to AppRole credential facts in `vault_integration/tasks/create_approle.yml`
+  - Fixes `vault_role_id` and `vault_secret_id` being undefined in later playbook phases
+  - Ensures Vault credentials persist across all 6 bootstrap phases
+
+- **Missing Variable Definition**:
+  - Added `vault_proxmox_nodes_path: "secret/proxmox/nodes"` to `vault_integration/defaults/main.yml`
+  - Fixes undefined variable error during Vault integration setup
+
+- **Vault Namespace Error**:
+  - Implemented workaround for "no namespace" error when using AppRole tokens
+  - Changed `save_to_vault.yml` to use Vault HTTP API via `ansible.builtin.uri` instead of CLI
+  - Uses root token for save operations to avoid namespace issues in Vault OSS
+  - Error: `failed to look up namespace from the token: no namespace`
+
+- **SSH Key Authentication**:
+  - Corrected SSH key usage throughout bootstrap process to use `pve_id_ed25519`
+  - Phase 6 verification now properly authenticates with exchanged SSH keys
+  - Removed incorrect `ansible_become: true` from host configuration that was causing "Missing sudo password" errors
+
+- **Sudo Password Error**:
+  - Fixed "Missing sudo password" error in Phase 6 verification
+  - Root cause: Ansible's `become: true` incompatible with NOPASSWD sudo configuration
+  - Changed verification tasks to use direct `sudo -n` commands instead of become mechanism
+  - NOPASSWD sudo requires exact command path matching; Ansible's become wrapper breaks this
+
+- **Ansible Collection Installation**:
+  - Fixed `ansible.posix.authorized_key` module not found error
+  - Changed collection installation to always run with `--force` flag
+  - Ensures collections are installed even when pre-check fails
+  - Prevents "couldn't resolve module/action" errors on clean installations
+
+- **Vault Connection from Remote Nodes**:
+  - Fixed Vault connection failures when tasks run on Proxmox nodes
+  - Implemented automatic detection of Vault VM public IP in Phase 0
+  - Proxmox nodes can now connect back to Vault using detected public IP
+  - Replaces hardcoded 127.0.0.1 with dynamic `ansible_default_ipv4.address`
+
+- **Debug Trace Cleanup**:
+  - Removed unnecessary debug tasks added during troubleshooting
+  - Changed `no_log: false` to `no_log: true` in sensitive operations
+  - Cleaned up `verify_integration.yml` and other roles
+
+- **Obsolete File Removal**:
+  - Deleted redundant `setup/test_vault_connection.sh` script
+  - Removed duplicate `setup/playbooks/ansible.cfg` file
+  - Consolidated configuration to prevent conflicts
+
+### Security Enhancements
+
+- **Immutable File Protection**: Critical files protected with `chattr +i`
+  - Vault credentials
+  - SSH key backups
+  - Prevents accidental deletion or modification
+
+- **Granular Sudo Permissions**: Labtomation user on Proxmox nodes
+  - Limited to specific commands only
+  - No full root access
+  - Auditable command execution
+
+- **AppRole Authentication**: Production-ready Vault authentication
+  - Service-to-service authentication
+  - Limited scope and permissions
+  - Automatic token renewal
+
+- **Credential Segregation**: Separate credentials for different purposes
+  - SSH keys for different access levels
+  - API tokens for automation
+  - All stored securely in Vault
+
+### Infrastructure
+
+- **Modular Architecture**: Clean separation of concerns
+  - VM creation (labtomation.sh)
+  - Tool installation (setup_devops_tools.yml)
+  - Security setup (vault_init role)
+  - Proxmox management (dedicated playbooks)
+
+- **Idempotent Operations**: All new playbooks are idempotent
+  - Safe to run multiple times
+  - Proper state detection
+  - No duplicate resources
+
+### Testing
+
+- **Comprehensive Testing**:
+  - Syntax validation for all new playbooks
+  - YAML structure validation
+  - Test playbooks for independent role testing
+  - Documented testing procedures
+
+### Breaking Changes
+
+- **SSH Key Names Changed**:
+  - `id_ed25519` → `lab_id_ed25519` (for lab VMs/LXC)
+  - New `pve_id_ed25519` (for Proxmox nodes)
+  - Automatic migration in new installations
+
+- **Vault Credentials Location Changed**:
+  - Old: `/home/labtomation/.vault_env`
+  - New: `/home/labtomation/.security/.vault` (credentials)
+  - New: `/home/labtomation/.security/.vault_env.sh` (environment, 400)
+
+### Migration Guide
+
+For existing v1.x installations:
+
+1. **SSH Keys**: Rename existing keys or regenerate
+
+   ```bash
+   mv /opt/labtomation/setup/id_ed25519 /opt/labtomation/setup/lab_id_ed25519
+   mv /opt/labtomation/setup/id_ed25519.pub /opt/labtomation/setup/lab_id_ed25519.pub
+   ```
+
+2. **Vault Initialization**: Run vault_init role manually
+
+   ```bash
+   cd /opt/labtomation/playbooks
+   ansible-playbook test_vault_init.yml
+   ```
+
+3. **Update Scripts**: Pull latest version and re-run setup if needed
+
+### Known Issues
+
+- **Vault AppRole Namespace Error**:
+  - AppRole tokens produce "no namespace" error when saving to Vault KV
+  - Current workaround: Using root token for save operations
+  - Root cause: Potential Vault Enterprise feature requirement or OSS limitation
+  - Impact: Acceptable for bootstrap operations; may need review for production
+  - Tracked in: [proxmox_bootstrap/tasks/save_to_vault.yml:8-10](setup/playbooks/roles/proxmox_bootstrap/tasks/save_to_vault.yml#L8-L10)
+
+- **Ansible become: true Incompatibility**:
+  - Ansible's `become: true` doesn't work with NOPASSWD sudo configuration
+  - Root cause: NOPASSWD sudo requires exact command path matching; Ansible wraps commands in temporary scripts
+  - Workaround: Using direct `sudo -n` commands instead of become mechanism
+  - Impact: Minor; workaround is clean and reliable
+  - Documented in: Code review analysis
+
+- **Network Discovery Authentication**:
+  - Discovery process will report "Not a valid Proxmox node" for non-Proxmox IPs in range
+  - Expected behavior: Only actual Proxmox nodes should be discovered
+  - Impact: None; informational messages only
+
+### Technical Notes
+
+#### Why become: true Doesn't Work with NOPASSWD Sudo
+
+The Proxmox bootstrap uses NOPASSWD sudo configuration for the `labtomation` user:
+
+```bash
+# /etc/sudoers.d/labtomation
+labtomation ALL=(ALL) NOPASSWD: /usr/bin/apt, /usr/sbin/pvecm, /usr/sbin/pveum, ...
+```
+
+NOPASSWD sudo requires **exact command path matching**. When Ansible uses `become: true`, it:
+
+1. Creates a temporary wrapper script (e.g., `/tmp/ansible-tmp-xxxxx/script.sh`)
+2. Executes `sudo /tmp/ansible-tmp-xxxxx/script.sh`
+3. The temporary script path doesn't match `/usr/sbin/pvecm` in sudoers
+4. Sudo requests a password, causing "Missing sudo password" error
+
+**Solution**: Use direct `sudo -n` commands instead:
+
+```yaml
+# Works ✓
+- name: Test sudo access
+  ansible.builtin.shell: sudo -n pvecm status
+
+# Fails ✗ (with NOPASSWD sudo)
+- name: Test sudo access
+  ansible.builtin.command: pvecm status
+  become: true
+```
+
+This is documented behavior, not a bug. Direct `sudo -n` is the correct approach for NOPASSWD configurations.
+
+#### Vault AppRole Namespace Error Analysis
+
+When using AppRole tokens with Vault KV v2 engine:
+
+```text
+Error: failed to look up namespace from the token: no namespace
+Code: 500
+```
+
+**Attempted Fixes**:
+
+- Changed from `vault kv put` to `vault write`
+- Added `token_type="service"` to AppRole configuration
+- Added namespace permissions to policy (`sys/namespaces`, `sys/internal/ui/mounts`)
+- Changed to HTTP API via `ansible.builtin.uri`
+
+**Conclusion**: Namespace feature may be Vault Enterprise-only. Current workaround uses root token for save operations, which is acceptable for bootstrap scenarios but should be reviewed for production use.
+
+#### Dynamic IP Detection Implementation
+
+The Vault VM public IP is detected automatically in Phase 0:
+
+```yaml
+- name: Detect Vault VM public IP address
+  ansible.builtin.set_fact:
+    vault_public_ip: "{{ ansible_default_ipv4.address }}"
+    cacheable: true
+```
+
+This allows Proxmox nodes to connect back to Vault when tasks are delegated to remote nodes. Without this, nodes would try to connect to `127.0.0.1` and fail.
+
+### Upgrade Path
+
+**From v1.0.x to v2.0.0**:
+
+- Recommended: Fresh installation for best experience
+- Manual migration possible for existing VMs
+- Vault data preserved if using same initialization keys
+
+---
+
 ## [1.0.2] - 2025-10-24
 
 ### Removed

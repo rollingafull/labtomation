@@ -1,0 +1,117 @@
+---
+# ===============================================================================
+# Test Playbook: Vault Init Role Testing
+# Description: Tests the vault_init role independently
+# -------------------------------------------------------------------------------
+# Author: rolling (rolling@a-full.com)
+# Created: 2025-10-27
+# Version: 1.0.0
+# ===============================================================================
+#
+# Prerequisites:
+#   - HashiCorp Vault installed and running
+#   - Vault service accessible at http://127.0.0.1:8200
+#   - SSH keys generated in /opt/labtomation/setup/:
+#     - lab_id_ed25519 (will be moved to /home/labtomation/.security/)
+#     - pve_id_ed25519 (will be moved to /home/labtomation/.security/)
+#
+# Usage:
+#   # Syntax check
+#   ansible-playbook test_vault_init.yml --syntax-check
+#
+#   # Check mode (dry run)
+#   ansible-playbook test_vault_init.yml --check
+#
+#   # Run the role
+#   ansible-playbook test_vault_init.yml
+#
+#   # Run specific tags
+#   ansible-playbook test_vault_init.yml --tags security
+#
+# ===============================================================================
+
+- name: Test Vault Init Role
+  hosts: localhost
+  connection: local
+  become: false
+  gather_facts: true
+
+  vars:
+    ansible_user: "{{ lookup('env', 'USER') }}"
+    vault_addr: "http://127.0.0.1:8200"
+
+  pre_tasks:
+    - name: Display test information
+      ansible.builtin.debug:
+        msg:
+          - "=========================================="
+          - "Testing vault_init role"
+          - "=========================================="
+          - "Current user: {{ ansible_user }}"
+          - "Vault address: {{ vault_addr }}"
+          - "Working directory: {{ playbook_dir }}"
+          - "=========================================="
+
+    - name: Check prerequisites
+      block:
+        - name: Check if Vault is installed
+          ansible.builtin.command: vault version
+          register: vault_version_check
+          changed_when: false
+          failed_when: false
+
+        - name: Display Vault version
+          ansible.builtin.debug:
+            msg: "Vault version: {{ vault_version_check.stdout }}"
+          when: vault_version_check.rc == 0
+
+        - name: Check if Vault service is running
+          ansible.builtin.uri:
+            url: "{{ vault_addr }}/v1/sys/health"
+            method: GET
+            status_code: [200, 429, 472, 473, 501, 503]
+            timeout: 5
+          register: vault_health_check
+          failed_when: false
+
+        - name: Display Vault health status
+          ansible.builtin.debug:
+            msg:
+              - "Vault is reachable: {{ vault_health_check.status is defined }}"
+              - "Initialized: {{ vault_health_check.json.initialized | default('unknown') }}"
+              - "Sealed: {{ vault_health_check.json.sealed | default('unknown') }}"
+          when: vault_health_check.status is defined
+
+        - name: Check if SSH keys exist
+          ansible.builtin.stat:
+            path: "{{ item }}"
+          register: ssh_key_checks
+          loop:
+            - /opt/labtomation/setup/lab_id_ed25519
+            - /opt/labtomation/setup/pve_id_ed25519
+
+        - name: Display SSH key status
+          ansible.builtin.debug:
+            msg: "{{ item.item }}: {{ 'EXISTS' if item.stat.exists else 'MISSING' }}"
+          loop: "{{ ssh_key_checks.results }}"
+          loop_control:
+            label: "{{ item.item }}"
+
+  roles:
+    - role: vault_init
+      tags: [vault_init]
+
+  post_tasks:
+    - name: Display test completion message
+      ansible.builtin.debug:
+        msg:
+          - "=========================================="
+          - "✅ Vault Init Role Test Complete"
+          - "=========================================="
+          - "Check the following:"
+          - "  1. Security directory created"
+          - "  2. SSH keys backed up"
+          - "  3. Vault initialized (if not already)"
+          - "  4. Credentials file created"
+          - "  5. Environment file created"
+          - "=========================================="

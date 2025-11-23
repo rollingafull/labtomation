@@ -1,0 +1,51 @@
+---
+# Main tasks for proxmox_bootstrap role
+
+- name: Display bootstrap banner
+  ansible.builtin.debug:
+    msg:
+      - ""
+      - "═══════════════════════════════════════════════════════════════"
+      - "     Bootstrapping Proxmox Node"
+      - "═══════════════════════════════════════════════════════════════"
+      - ""
+      - "Node: {{ inventory_hostname }}"
+      - "IP: {{ ansible_host }}"
+      - ""
+      - "═══════════════════════════════════════════════════════════════"
+
+- name: Verify Ansible collections
+  ansible.builtin.include_tasks: verify_collections.yml
+
+- name: Generate Proxmox SSH key if needed
+  ansible.builtin.include_tasks: generate_pve_ssh_key.yml
+
+- name: Check and install required packages
+  ansible.builtin.include_tasks: install_packages.yml
+
+- name: Create labtomation OS user
+  ansible.builtin.include_tasks: create_os_user.yml
+
+- name: Setup SSH key authentication
+  ansible.builtin.include_tasks: setup_ssh_key.yml
+
+- name: Configure sudo permissions
+  ansible.builtin.include_tasks: configure_sudo.yml
+
+- name: Create Proxmox API user
+  ansible.builtin.include_tasks: create_api_user.yml
+
+- name: Create Proxmox API role
+  ansible.builtin.include_tasks: create_api_role.yml
+
+- name: Generate API token
+  ansible.builtin.include_tasks: create_api_token.yml
+
+- name: Save credentials to Vault
+  ansible.builtin.include_tasks: save_to_vault.yml
+
+- name: Harden SSH access
+  ansible.builtin.include_tasks: harden_ssh.yml
+
+- name: Display bootstrap summary
+  ansible.builtin.include_tasks: display_summary.yml

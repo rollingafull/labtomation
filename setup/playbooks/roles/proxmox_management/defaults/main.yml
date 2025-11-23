@@ -1,0 +1,18 @@
+---
+# Default variables for proxmox_management role
+
+# Package management
+update_cache: true
+upgrade_packages: false
+autoremove: false
+
+# Monitoring
+enable_monitoring: true
+collect_node_stats: true
+
+# Backup
+backup_etc_pve: false
+backup_destination: /tmp/pve_backup
+
+# Vault paths
+vault_proxmox_nodes_path: "secret/proxmox/nodes"

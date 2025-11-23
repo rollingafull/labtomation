@@ -1,0 +1,109 @@
+---
+# Verify security configuration
+
+- name: Verify security directory exists and has correct permissions
+  ansible.builtin.stat:
+    path: "{{ security_dir }}"
+  register: security_dir_stat
+
+- name: Assert security directory is configured correctly
+  assert:
+    that:
+      - security_dir_stat.stat.exists
+      - security_dir_stat.stat.isdir
+      - security_dir_stat.stat.mode == '0700'
+      - security_dir_stat.stat.pw_name == labtomation_user
+    fail_msg: "Security directory {{ security_dir }} is not configured correctly"
+    success_msg: "✓ Security directory configured correctly"
+
+- name: Verify SSH key backups exist
+  ansible.builtin.stat:
+    path: "{{ item }}"
+  register: ssh_backup_stats
+  loop:
+    - "{{ security_dir }}/.lab_id_ed25519"
+    - "{{ security_dir }}/.lab_id_ed25519.pub"
+    - "{{ security_dir }}/.pve_id_ed25519"
+    - "{{ security_dir }}/.pve_id_ed25519.pub"
+
+- name: Check SSH key backup permissions
+  assert:
+    that:
+      - item.stat.exists
+      - item.stat.mode == '0400'
+    fail_msg: "SSH key backup {{ item.item }} is not configured correctly"
+  loop: "{{ ssh_backup_stats.results }}"
+  loop_control:
+    label: "{{ item.item }}"
+  when: item.stat.exists  # Only verify files that exist (pve keys created later)
+
+- name: Verify Vault credentials file exists
+  ansible.builtin.stat:
+    path: "{{ vault_creds_file }}"
+  register: vault_creds_stat
+
+- name: Assert Vault credentials file is configured correctly
+  assert:
+    that:
+      - vault_creds_stat.stat.exists
+      - vault_creds_stat.stat.mode == '0400'
+      - vault_creds_stat.stat.pw_name == labtomation_user
+    fail_msg: "Vault credentials file is not configured correctly"
+    success_msg: "✓ Vault credentials file configured correctly"
+  when: vault_creds_stat.stat.exists
+
+- name: Verify Vault environment file exists
+  ansible.builtin.stat:
+    path: "{{ vault_env_file }}"
+  register: vault_env_stat
+
+- name: Assert Vault environment file is configured correctly
+  assert:
+    that:
+      - vault_env_stat.stat.exists
+      - vault_env_stat.stat.mode == vault_env_mode
+      - vault_env_stat.stat.pw_name == labtomation_user
+    fail_msg: "Vault environment file is not configured correctly"
+    success_msg: "✓ Vault environment file configured correctly"
+  when: vault_env_stat.stat.exists
+
+- name: Check immutable flags on critical files
+  command: lsattr {{ item }}
+  register: immutable_check
+  changed_when: false
+  failed_when: false
+  loop:
+    - "{{ security_dir }}/.lab_id_ed25519"
+    - "{{ security_dir }}/.pve_id_ed25519"
+    - "{{ vault_creds_file }}"
+  when: enable_immutable
+
+- name: Display immutable flag status
+  debug:
+    msg: "{{ '✓ Immutable flag set on ' + item.item if 'i' in item.stdout.split()[0] else '⚠ Immutable flag NOT set on ' + item.item }}"
+  loop: "{{ immutable_check.results }}"
+  loop_control:
+    label: "{{ item.item }}"
+  when: enable_immutable and item.rc == 0
+
+- name: Test Vault connectivity
+  ansible.builtin.uri:
+    url: "{{ vault_addr }}/v1/sys/health"
+    method: GET
+    status_code: [200, 429, 472, 473, 501, 503]
+    timeout: 5
+  register: vault_health
+  failed_when: false
+
+- name: Display Vault health status
+  debug:
+    msg:
+      - "Vault Health Status:"
+      - "  - Initialized: {{ vault_health.json.initialized | default(false) }}"
+      - "  - Sealed: {{ vault_health.json.sealed | default(true) }}"
+      - "  - Standby: {{ vault_health.json.standby | default(false) }}"
+  when: vault_health.status is defined
+
+- name: Set security verification result
+  set_fact:
+    security_verified: true

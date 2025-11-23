@@ -1,0 +1,14 @@
+---
+# Main tasks for proxmox_management role
+
+- name: Update package cache
+  include_tasks: update_packages.yml
+  when: update_cache | bool
+
+- name: Monitor node status
+  include_tasks: monitor_nodes.yml
+  when: enable_monitoring | bool
+
+- name: Backup configuration
+  include_tasks: backup_configs.yml
+  when: backup_etc_pve | bool

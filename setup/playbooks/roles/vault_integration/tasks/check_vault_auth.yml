@@ -1,0 +1,82 @@
+---
+# Check Vault authentication from secure credentials file
+
+- name: Check if secure Vault credentials file exists
+  ansible.builtin.stat:
+    path: /home/labtomation/.security/.vault
+  register: vault_creds_file
+
+- name: Check if VAULT_TOKEN environment variable is set
+  set_fact:
+    vault_token_set: "{{ lookup('env', 'VAULT_TOKEN') | length > 0 }}"
+
+- name: Read Vault token from secure credentials file
+  block:
+    - name: Temporarily remove immutable flag
+      command: chattr -i /home/labtomation/.security/.vault
+      become: true
+      when: vault_creds_file.stat.exists
+      changed_when: false
+      failed_when: false
+
+    - name: Read root token from credentials file
+      shell: grep "^token=" /home/labtomation/.security/.vault | cut -d= -f2
+      register: vault_token_from_file
+      when: vault_creds_file.stat.exists
+      changed_when: false
+      no_log: true
+
+    - name: Restore immutable flag
+      command: chattr +i /home/labtomation/.security/.vault
+      become: true
+      when: vault_creds_file.stat.exists
+      changed_when: false
+      failed_when: false
+
+    - name: Set Vault token from file
+      set_fact:
+        vault_root_token: "{{ vault_token_from_file.stdout }}"
+      when:
+        - vault_creds_file.stat.exists
+        - not vault_token_set
+      no_log: true
+
+  when: vault_creds_file.stat.exists and not vault_token_set
+
+- name: Use environment VAULT_TOKEN if already set
+  set_fact:
+    vault_root_token: "{{ lookup('env', 'VAULT_TOKEN') }}"
+  when: vault_token_set
+  no_log: true
+
+- name: Prompt for Vault root token if not available
+  pause:
+    prompt: "\n═══════════════════════════════════════════════════════════════\n     Vault Authentication Required\n═══════════════════════════════════════════════════════════════\n\nVault credentials file not found or not readable\nPlease provide your Vault root token manually\n\nLocation: /home/labtomation/.security/.vault\n\n═══════════════════════════════════════════════════════════════\n\nVault Root Token"
+    echo: false
+  register: vault_root_token_prompt
+  when:
+    - not vault_creds_file.stat.exists
+    - not vault_token_set
+
+- name: Set Vault token from prompt
+  set_fact:
+    vault_root_token: "{{ vault_root_token_prompt.user_input }}"
+  when:
+    - not vault_creds_file.stat.exists
+    - not vault_token_set
+  no_log: true
+
+- name: Verify token is valid
+  command: vault token lookup
+  environment:
+    VAULT_ADDR: "{{ vault_addr }}"
+    VAULT_TOKEN: "{{ vault_root_token }}"
+  register: token_lookup
+  changed_when: false
+  no_log: true
+
+- name: Display authentication status
+  debug:
+    msg:
+      - "✓ Vault authentication successful"
+      - "{% if vault_creds_file.stat.exists %}✓ Using credentials from: /home/labtomation/.security/.vault{% elif vault_token_set %}✓ Using VAULT_TOKEN environment variable{% else %}✓ Using manually provided token{% endif %}"
