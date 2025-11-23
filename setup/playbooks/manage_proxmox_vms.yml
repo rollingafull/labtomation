@@ -75,14 +75,14 @@
 
     - name: Display VM operation
       ansible.builtin.debug:
-        msg: |
-          VM Operation:
-            Action: {{ vm_state }}
-            Node: {{ vm_node }} ({{ node_data.ip_address }})
-            Name: {{ vm_name }}
-            Cores: {{ vm_cores }}
-            Memory: {{ vm_memory }}MB
-            Disk: {{ vm_disk }}
+        msg:
+          - "VM Operation:"
+          - "  Action: {{ vm_state }}"
+          - "  Node: {{ vm_node }} ({{ node_data.ip_address }})"
+          - "  Name: {{ vm_name }}"
+          - "  Cores: {{ vm_cores }}"
+          - "  Memory: {{ vm_memory }}MB"
+          - "  Disk: {{ vm_disk }}"
 
     - name: Manage VM via Proxmox API
       community.general.proxmox_kvm:

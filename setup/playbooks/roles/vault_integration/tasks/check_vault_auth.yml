@@ -51,20 +51,7 @@
 
 - name: Prompt for Vault root token if not available
   pause:
-    prompt: |
-
-      ═══════════════════════════════════════════════════════════════
-           Vault Authentication Required
-      ═══════════════════════════════════════════════════════════════
-
-      Vault credentials file not found or not readable
-      Please provide your Vault root token manually
-
-      Location: /home/labtomation/.security/.vault
-
-      ═══════════════════════════════════════════════════════════════
-
-      Vault Root Token
+    prompt: "\n═══════════════════════════════════════════════════════════════\n     Vault Authentication Required\n═══════════════════════════════════════════════════════════════\n\nVault credentials file not found or not readable\nPlease provide your Vault root token manually\n\nLocation: /home/labtomation/.security/.vault\n\n═══════════════════════════════════════════════════════════════\n\nVault Root Token"
     echo: false
   register: vault_root_token_prompt
   when:
@@ -90,12 +77,6 @@
 
 - name: Display authentication status
   debug:
-    msg: |
-      ✓ Vault authentication successful
-      {% if vault_creds_file.stat.exists %}
-      ✓ Using credentials from: /home/labtomation/.security/.vault
-      {% elif vault_token_set %}
-      ✓ Using VAULT_TOKEN environment variable
-      {% else %}
-      ✓ Using manually provided token
-      {% endif %}
+    msg:
+      - "✓ Vault authentication successful"
+      - "{% if vault_creds_file.stat.exists %}✓ Using credentials from: /home/labtomation/.security/.vault{% elif vault_token_set %}✓ Using VAULT_TOKEN environment variable{% else %}✓ Using manually provided token{% endif %}"

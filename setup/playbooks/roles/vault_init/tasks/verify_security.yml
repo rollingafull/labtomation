@@ -97,11 +97,11 @@
 
 - name: Display Vault health status
   debug:
-    msg: |
-      Vault Health Status:
-        - Initialized: {{ vault_health.json.initialized | default(false) }}
-        - Sealed: {{ vault_health.json.sealed | default(true) }}
-        - Standby: {{ vault_health.json.standby | default(false) }}
+    msg:
+      - "Vault Health Status:"
+      - "  - Initialized: {{ vault_health.json.initialized | default(false) }}"
+      - "  - Sealed: {{ vault_health.json.sealed | default(true) }}"
+      - "  - Standby: {{ vault_health.json.standby | default(false) }}"
   when: vault_health.status is defined
 
 - name: Set security verification result

@@ -132,12 +132,8 @@
 
 - name: Display SSH backup status
   debug:
-    msg: |
-      ✓ SSH keys moved to {{ security_dir }}
-      {% if lab_key_security_stat.stat.exists %}
-      ✓ Lab key: .lab_id_ed25519 ({{ vault_creds_mode }}, immutable)
-      {% endif %}
-      {% if pve_key_security_stat.stat.exists %}
-      ✓ PVE key: .pve_id_ed25519 ({{ vault_creds_mode }}, immutable)
-      {% endif %}
-      ✓ Original keys deleted from {{ lab_ssh_key_legacy | dirname }}
+    msg:
+      - "✓ SSH keys moved to {{ security_dir }}"
+      - "{% if lab_key_security_stat.stat.exists %}✓ Lab key: .lab_id_ed25519 ({{ vault_creds_mode }}, immutable){% endif %}"
+      - "{% if pve_key_security_stat.stat.exists %}✓ PVE key: .pve_id_ed25519 ({{ vault_creds_mode }}, immutable){% endif %}"
+      - "✓ Original keys deleted from {{ lab_ssh_key_legacy | dirname }}"

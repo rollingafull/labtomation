@@ -25,11 +25,7 @@
 
 - name: Display security directory status
   debug:
-    msg: |
-      {% if not security_dir_stat.stat.exists %}
-      ✓ Security directory created: {{ security_dir }}
-      {% else %}
-      ✓ Security directory already exists: {{ security_dir }}
-      {% endif %}
-      ✓ Permissions: {{ security_dir_mode }}
-      ✓ Owner: {{ labtomation_user }}:{{ labtomation_user }}
+    msg:
+      - "{% if not security_dir_stat.stat.exists %}✓ Security directory created: {{ security_dir }}{% else %}✓ Security directory already exists: {{ security_dir }}{% endif %}"
+      - "✓ Permissions: {{ security_dir_mode }}"
+      - "✓ Owner: {{ labtomation_user }}:{{ labtomation_user }}"

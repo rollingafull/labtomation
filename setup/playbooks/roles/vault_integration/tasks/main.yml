@@ -27,10 +27,10 @@
 
 - name: Verify Vault is operational
   fail:
-    msg: |
-      Vault is not operational. Status check returned: {{ vault_status.rc }}
-      This should not happen as PHASE 0 should have unsealed Vault.
-      Please check Vault service: systemctl status vault
+    msg:
+      - "Vault is not operational. Status check returned: {{ vault_status.rc }}"
+      - "This should not happen as PHASE 0 should have unsealed Vault."
+      - "Please check Vault service: systemctl status vault"
   when: vault_status.rc != 0
 
 - name: Install required packages

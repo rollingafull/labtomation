@@ -3,15 +3,15 @@
 
 - name: Display vault_init banner
   debug:
-    msg: |
-
-      ═══════════════════════════════════════════════════════════════
-           Vault Initialization & Security Setup
-      ═══════════════════════════════════════════════════════════════
-
-      Setting up secure credential storage and Vault init
-
-      ═══════════════════════════════════════════════════════════════
+    msg:
+      - ""
+      - "═══════════════════════════════════════════════════════════════"
+      - "     Vault Initialization & Security Setup"
+      - "═══════════════════════════════════════════════════════════════"
+      - ""
+      - "Setting up secure credential storage and Vault init"
+      - ""
+      - "═══════════════════════════════════════════════════════════════"
 
 - name: Create security directory structure
   include_tasks: create_security_dir.yml

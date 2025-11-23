@@ -22,8 +22,8 @@
 
 - name: Display node information
   debug:
-    msg: |
-      Node: {{ inventory_hostname }}
-      Status: Online
-      VMs: {{ vm_list.stdout_lines | length - 1 }}
-      Containers: {{ ct_list.stdout_lines | length - 1 if ct_list.rc == 0 else 0 }}
+    msg:
+      - "Node: {{ inventory_hostname }}"
+      - "Status: Online"
+      - "VMs: {{ vm_list.stdout_lines | length - 1 }}"
+      - "Containers: {{ ct_list.stdout_lines | length - 1 if ct_list.rc == 0 else 0 }}"

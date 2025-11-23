@@ -50,10 +50,10 @@
 
 - name: Debug cluster status output
   ansible.builtin.debug:
-    msg: |
-      Node {{ node_ip }} cluster status:
-      Return code: {{ cluster_status.rc }}
-      Output: {{ cluster_status.stdout }}
+    msg:
+      - "Node {{ node_ip }} cluster status:"
+      - "Return code: {{ cluster_status.rc }}"
+      - "Output: {{ cluster_status.stdout }}"
   when:
     - node_hostname_result.rc == 0
     - is_proxmox.stdout == "true"

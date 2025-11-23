@@ -37,20 +37,8 @@
 
 - name: Display Vault status
   debug:
-    msg: |
-      Vault Status:
-      {% if vault_is_initialized %}
-      ✓ Initialized: Yes
-      {% else %}
-      ✗ Initialized: No (will initialize)
-      {% endif %}
-      {% if vault_is_sealed %}
-      ✗ Sealed: Yes (will unseal)
-      {% else %}
-      ✓ Sealed: No (already unsealed)
-      {% endif %}
-      {% if vault_creds_file_exists %}
-      ✓ Credentials file: Exists
-      {% else %}
-      ✗ Credentials file: Not found (will create)
-      {% endif %}
+    msg:
+      - "Vault Status:"
+      - "{% if vault_is_initialized %}✓ Initialized: Yes{% else %}✗ Initialized: No (will initialize){% endif %}"
+      - "{% if vault_is_sealed %}✗ Sealed: Yes (will unseal){% else %}✓ Sealed: No (already unsealed){% endif %}"
+      - "{% if vault_creds_file_exists %}✓ Credentials file: Exists{% else %}✗ Credentials file: Not found (will create){% endif %}"

@@ -3,15 +3,15 @@
 
 - name: Display discovery banner
   ansible.builtin.debug:
-    msg: |
-
-      ═══════════════════════════════════════════════════════════════
-           Proxmox Node Discovery
-      ═══════════════════════════════════════════════════════════════
-
-      Scanning network for Proxmox VE nodes...
-
-      ═══════════════════════════════════════════════════════════════
+    msg:
+      - ""
+      - "═══════════════════════════════════════════════════════════════"
+      - "     Proxmox Node Discovery"
+      - "═══════════════════════════════════════════════════════════════"
+      - ""
+      - "Scanning network for Proxmox VE nodes..."
+      - ""
+      - "═══════════════════════════════════════════════════════════════"
 
 - name: Install required packages
   ansible.builtin.include_tasks: install_packages.yml

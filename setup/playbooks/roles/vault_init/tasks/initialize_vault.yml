@@ -41,11 +41,11 @@
 
 - name: Display initialization status
   debug:
-    msg: |
-      ✓ Vault initialized successfully
-      ✓ Credentials saved to: {{ vault_creds_file }}
-      ✓ File permissions: {{ vault_creds_mode }}
-      ✓ Immutable: {{ enable_immutable }}
-
-      ⚠ IMPORTANT: Backup this file securely!
-        Location: {{ vault_creds_file }}
+    msg:
+      - "✓ Vault initialized successfully"
+      - "✓ Credentials saved to: {{ vault_creds_file }}"
+      - "✓ File permissions: {{ vault_creds_mode }}"
+      - "✓ Immutable: {{ enable_immutable }}"
+      - ""
+      - "⚠ IMPORTANT: Backup this file securely!"
+      - "  Location: {{ vault_creds_file }}"

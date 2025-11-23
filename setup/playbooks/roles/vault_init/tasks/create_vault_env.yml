@@ -34,9 +34,9 @@
 
 - name: Display environment file status
   debug:
-    msg: |
-      ✓ Vault environment file created: {{ vault_env_file }}
-      ✓ Permissions: {{ vault_env_mode }}
-
-      To use Vault, source this file:
-        source {{ vault_env_file }}
+    msg:
+      - "✓ Vault environment file created: {{ vault_env_file }}"
+      - "✓ Permissions: {{ vault_env_mode }}"
+      - ""
+      - "To use Vault, source this file:"
+      - "  source {{ vault_env_file }}"

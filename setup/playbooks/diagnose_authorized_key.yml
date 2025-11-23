@@ -9,14 +9,14 @@
   tasks:
     - name: Display environment info
       ansible.builtin.debug:
-        msg: |
-          ═══════════════════════════════════════════════════════════════
-          CONTROL NODE DIAGNOSTICS
-          ═══════════════════════════════════════════════════════════════
-          Python: {{ ansible_python_version }}
-          Ansible: {{ ansible_version.full }}
-          Collections path: {{ lookup('config', 'COLLECTIONS_PATHS') }}
-          ═══════════════════════════════════════════════════════════════
+        msg:
+          - "═══════════════════════════════════════════════════════════════"
+          - "CONTROL NODE DIAGNOSTICS"
+          - "═══════════════════════════════════════════════════════════════"
+          - "Python: {{ ansible_python_version }}"
+          - "Ansible: {{ ansible_version.full }}"
+          - "Collections path: {{ lookup('config', 'COLLECTIONS_PATHS') }}"
+          - "═══════════════════════════════════════════════════════════════"
 
     - name: Check ansible.posix collection installation
       ansible.builtin.command: ansible-galaxy collection list ansible.posix
@@ -46,15 +46,15 @@
   tasks:
     - name: Display remote host info
       ansible.builtin.debug:
-        msg: |
-          ═══════════════════════════════════════════════════════════════
-          REMOTE HOST DIAGNOSTICS
-          ═══════════════════════════════════════════════════════════════
-          Host: {{ inventory_hostname }}
-          IP: {{ ansible_host }}
-          OS: {{ ansible_distribution }} {{ ansible_distribution_version }}
-          Python: {{ ansible_python_version }}
-          ═══════════════════════════════════════════════════════════════
+        msg:
+          - "═══════════════════════════════════════════════════════════════"
+          - "REMOTE HOST DIAGNOSTICS"
+          - "═══════════════════════════════════════════════════════════════"
+          - "Host: {{ inventory_hostname }}"
+          - "IP: {{ ansible_host }}"
+          - "OS: {{ ansible_distribution }} {{ ansible_distribution_version }}"
+          - "Python: {{ ansible_python_version }}"
+          - "═══════════════════════════════════════════════════════════════"
 
     - name: Check Python on remote host
       ansible.builtin.command: which python3
@@ -76,13 +76,9 @@
 
     - name: Display remote test result
       ansible.builtin.debug:
-        msg: |
-          {% if remote_test is failed %}
-          ✗ ansible.posix.authorized_key FAILED on remote host
-          Error: {{ remote_test.msg | default('Unknown error') }}
-          {% else %}
-          ✓ ansible.posix.authorized_key works on remote host
-          {% endif %}
+        msg:
+          - "{% if remote_test is failed %}✗ ansible.posix.authorized_key FAILED on remote host{% else %}✓ ansible.posix.authorized_key works on remote host{% endif %}"
+          - "{% if remote_test is failed %}Error: {{ remote_test.msg | default('Unknown error') }}{% endif %}"
 
     - name: Check if Python module 'pwd' is available
       ansible.builtin.shell: python3 -c "import pwd; print('pwd module OK')"
@@ -112,13 +108,13 @@
   tasks:
     - name: Display diagnostic summary
       ansible.builtin.debug:
-        msg: |
-          ═══════════════════════════════════════════════════════════════
-          DIAGNOSTIC SUMMARY
-          ═══════════════════════════════════════════════════════════════
-
-          Run this playbook with:
-          ansible-playbook diagnose_authorized_key.yml -vvv
-
-          The -vvv flag will show detailed module execution information
-          ═══════════════════════════════════════════════════════════════
+        msg:
+          - "═══════════════════════════════════════════════════════════════"
+          - "DIAGNOSTIC SUMMARY"
+          - "═══════════════════════════════════════════════════════════════"
+          - ""
+          - "Run this playbook with:"
+          - "ansible-playbook diagnose_authorized_key.yml -vvv"
+          - ""
+          - "The -vvv flag will show detailed module execution information"
+          - "═══════════════════════════════════════════════════════════════"

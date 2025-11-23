@@ -25,11 +25,15 @@
   register: vms_list
   no_log: true
 
-- name: Display VMs on node
+- name: Display VMs on node header
   ansible.builtin.debug:
-    msg: |
-      Node: {{ node_hostname }} ({{ current_node_data.ip_address }})
-      VMs: {{ vms_list.json.data | length }}
-      {% for vm in vms_list.json.data %}
-      - {{ vm.name }} (VMID: {{ vm.vmid }}, Status: {{ vm.status }})
-      {% endfor %}
+    msg:
+      - "Node: {{ node_hostname }} ({{ current_node_data.ip_address }})"
+      - "VMs: {{ vms_list.json.data | length }}"
+
+- name: Display each VM
+  ansible.builtin.debug:
+    msg: "- {{ item.name }} (VMID: {{ item.vmid }}, Status: {{ item.status }})"
+  loop: "{{ vms_list.json.data }}"
+  loop_control:
+    label: "{{ item.name }}"

@@ -20,12 +20,12 @@
 
 - name: Fail if no nodes found
   ansible.builtin.fail:
-    msg: |
-      No Proxmox nodes found on network {{ network_range }}
-
-      Please verify:
-      - Network range is correct
-      - Proxmox nodes are powered on
-      - Proxmox web UI is accessible on port {{ proxmox_scan_port }}
-      - Firewall is not blocking port {{ proxmox_scan_port }}
+    msg:
+      - "No Proxmox nodes found on network {{ network_range }}"
+      - ""
+      - "Please verify:"
+      - "- Network range is correct"
+      - "- Proxmox nodes are powered on"
+      - "- Proxmox web UI is accessible on port {{ proxmox_scan_port }}"
+      - "- Firewall is not blocking port {{ proxmox_scan_port }}"
   when: discovered_ips | length == 0

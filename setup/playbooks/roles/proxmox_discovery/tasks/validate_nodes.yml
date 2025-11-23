@@ -17,12 +17,12 @@
 
 - name: Fail if no valid Proxmox nodes
   ansible.builtin.fail:
-    msg: |
-      No valid Proxmox nodes found!
-
-      Discovered IPs had port {{ proxmox_scan_port }} open but failed validation.
-      This could mean:
-      - SSH authentication failed (check root password)
-      - Hosts are not Proxmox VE servers
-      - /etc/pve directory is not accessible
+    msg:
+      - "No valid Proxmox nodes found!"
+      - ""
+      - "Discovered IPs had port {{ proxmox_scan_port }} open but failed validation."
+      - "This could mean:"
+      - "- SSH authentication failed (check root password)"
+      - "- Hosts are not Proxmox VE servers"
+      - "- /etc/pve directory is not accessible"
   when: proxmox_nodes_discovered | length == 0

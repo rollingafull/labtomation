@@ -23,8 +23,8 @@
   become: true
 
 - name: Display Ansible configuration status
-  debug:
-    msg: |
-      ✓ Ansible configured for Vault integration:
-        - /opt/labtomation/playbooks/ansible.cfg
-        - /opt/labtomation/playbooks/group_vars/all.yml
+  ansible.builtin.debug:
+    msg:
+      - "✓ Ansible configured for Vault integration:"
+      - "  - /opt/labtomation/playbooks/ansible.cfg"
+      - "  - /opt/labtomation/playbooks/group_vars/all.yml"

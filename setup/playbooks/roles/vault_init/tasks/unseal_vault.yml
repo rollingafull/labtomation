@@ -68,14 +68,10 @@
 
 - name: Display unseal status
   debug:
-    msg: |
-      {% if vault_unsealed %}
-      ✓ Vault unsealed successfully
-      ✓ Used {{ unseal_keys_required }} of 5 unseal keys
-      ✓ Vault is now operational
-      {% else %}
-      ✗ Vault unseal failed - manual intervention required
-      {% endif %}
+    msg:
+      - "{% if vault_unsealed %}✓ Vault unsealed successfully{% else %}✗ Vault unseal failed - manual intervention required{% endif %}"
+      - "{% if vault_unsealed %}✓ Used {{ unseal_keys_required }} of 5 unseal keys{% endif %}"
+      - "{% if vault_unsealed %}✓ Vault is now operational{% endif %}"
 
 - name: Fail if unseal was not successful
   fail:
