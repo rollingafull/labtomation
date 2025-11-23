@@ -213,7 +213,8 @@ mkdir -p "$INSTALL_DIR"
 log_success "Directory created"
 
 log_step "Cloning Labtomation repository from GitHub..."
-if git clone -b SecondRelease --single-branch "$GITHUB_REPO" "$INSTALL_DIR" > /dev/null 2>&1; then
+# if git clone -b SecondRelease --single-branch "$GITHUB_REPO" "$INSTALL_DIR" > /dev/null 2>&1; then
+if git clone "$GITHUB_REPO" "$INSTALL_DIR" > /dev/null 2>&1; then
     log_success "Repository cloned successfully"
 else
     log_error "Failed to clone repository"
