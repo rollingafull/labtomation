@@ -24,7 +24,7 @@
     VAULT_TOKEN: "{{ vault_integration_approle_token }}"
   register: vault_integration_token_test
   changed_when: false
-  no_log: true
+  no_log: false # Hide token but show output
 
 - name: Check if token lookup succeeded
   ansible.builtin.assert:

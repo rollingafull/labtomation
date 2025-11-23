@@ -1,22 +1,9 @@
 ---
 # Save credentials to Vault using hostname
 
-- name: Get Vault token from AppRole
-  ansible.builtin.command: >
-    vault write -field=token auth/approle/login
-    role_id="{{ hostvars['localhost']['vault_role_id'] }}"
-    secret_id="{{ hostvars['localhost']['vault_secret_id'] }}"
-  environment:
-    VAULT_ADDR: "{{ hostvars['localhost']['vault_addr'] }}"
-  register: vault_token_result
-  delegate_to: localhost
-  become: false
-  changed_when: false
-  no_log: true
-
-- name: Set Vault token
+- name: Get Vault root token (from localhost hostvars)
   ansible.builtin.set_fact:
-    vault_token: "{{ vault_token_result.stdout | trim }}"
+    vault_token: "{{ hostvars['localhost']['vault_root_token'] }}"
   no_log: true
 
 - name: Save node credentials to Vault
